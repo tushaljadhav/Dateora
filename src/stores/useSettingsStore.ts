@@ -3,7 +3,29 @@ import { AppSettings, DEFAULT_SETTINGS } from '../types/settings';
 import { ThemePreference } from '../theme';
 import { getDatabase } from '../db/client';
 import { appSettingsTable } from '../db/schema';
-import { eq } from 'drizzle-orm';
+
+const WEB_SETTINGS_KEY = 'dateora_settings_data';
+
+function getWebSettings(): Partial<AppSettings> {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const raw = window.localStorage.getItem(WEB_SETTINGS_KEY);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+  }
+  return {};
+}
+
+function saveWebSetting(key: keyof AppSettings, val: any): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const current = getWebSettings();
+    window.localStorage.setItem(WEB_SETTINGS_KEY, JSON.stringify({ ...current, [key]: val }));
+  }
+}
 
 interface SettingsState extends AppSettings {
   isLoaded: boolean;
@@ -23,6 +45,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loadSettings: async () => {
     try {
       const { db } = getDatabase();
+      if (!db) {
+        const web = getWebSettings();
+        set({
+          theme: web.theme || DEFAULT_SETTINGS.theme,
+          expiringSoonWindowDays: web.expiringSoonWindowDays ?? DEFAULT_SETTINGS.expiringSoonWindowDays,
+          defaultReminderOffsets: web.defaultReminderOffsets ?? DEFAULT_SETTINGS.defaultReminderOffsets,
+          dailyNotificationTime: web.dailyNotificationTime || DEFAULT_SETTINGS.dailyNotificationTime,
+          hasCompletedOnboarding: web.hasCompletedOnboarding ?? DEFAULT_SETTINGS.hasCompletedOnboarding,
+          notificationsEnabled: web.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
+          isLoaded: true,
+        });
+        return;
+      }
+
       const rows = await db.select().from(appSettingsTable);
       const settingsMap: Record<string, string> = {};
       rows.forEach((r) => {
@@ -50,6 +86,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setTheme: async (theme: ThemePreference) => {
     set({ theme });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('theme', theme);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'theme', value: theme })
@@ -59,6 +99,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setExpiringSoonWindowDays: async (days: number) => {
     set({ expiringSoonWindowDays: days });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('expiringSoonWindowDays', days);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'expiringSoonWindowDays', value: days.toString() })
@@ -68,6 +112,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setDefaultReminderOffsets: async (offsets: number[]) => {
     set({ defaultReminderOffsets: offsets });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('defaultReminderOffsets', offsets);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'defaultReminderOffsets', value: JSON.stringify(offsets) })
@@ -77,6 +125,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setDailyNotificationTime: async (time: string) => {
     set({ dailyNotificationTime: time });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('dailyNotificationTime', time);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'dailyNotificationTime', value: time })
@@ -86,6 +138,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setNotificationsEnabled: async (enabled: boolean) => {
     set({ notificationsEnabled: enabled });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('notificationsEnabled', enabled);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'notificationsEnabled', value: enabled.toString() })
@@ -95,6 +151,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setHasCompletedOnboarding: async (completed: boolean) => {
     set({ hasCompletedOnboarding: completed });
     const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('hasCompletedOnboarding', completed);
+      return;
+    }
     await db
       .insert(appSettingsTable)
       .values({ key: 'hasCompletedOnboarding', value: completed.toString() })

@@ -5,6 +5,28 @@ import { Item, NewItemInput, UpdateItemInput, ItemLifecycleStatus } from '../typ
 import { notificationService } from './notificationService';
 import { generateUUID } from '../utils/uuid';
 
+const WEB_STORAGE_KEY = 'dateora_items_data';
+
+function getWebItems(): Item[] {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const raw = window.localStorage.getItem(WEB_STORAGE_KEY);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+function saveWebItems(list: Item[]): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(list));
+  }
+}
+
 function mapRowToItem(row: ItemRow): Item {
   let reminderOffsets: number[] = [3];
   try {
@@ -34,30 +56,44 @@ function mapRowToItem(row: ItemRow): Item {
 export class ItemRepository {
   public async getAllItems(): Promise<Item[]> {
     const { db } = getDatabase();
+    if (!db) {
+      const webList = getWebItems();
+      return webList.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
     const rows = await db.select().from(items).orderBy(desc(items.createdAt));
     return rows.map(mapRowToItem);
   }
 
   public async getActiveItems(): Promise<Item[]> {
     const { db } = getDatabase();
+    if (!db) {
+      const webList = getWebItems();
+      return webList
+        .filter((i) => i.status === 'active')
+        .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
+    }
     const rows = await db.select().from(items).where(eq(items.status, 'active')).orderBy(items.expiryDate);
     return rows.map(mapRowToItem);
   }
 
   public async getHistoryItems(): Promise<Item[]> {
     const { db } = getDatabase();
-    const rows = await db
-      .select()
-      .from(items)
-      .where(eq(items.status, 'used'))
-      .orderBy(desc(items.statusChangedAt));
-    // Also include finished and disposed in history
+    if (!db) {
+      const webList = getWebItems();
+      return webList
+        .filter((i) => i.status !== 'active')
+        .sort((a, b) => (b.statusChangedAt || '').localeCompare(a.statusChangedAt || ''));
+    }
     const allRows = await db.select().from(items).orderBy(desc(items.statusChangedAt));
     return allRows.filter((r) => r.status !== 'active').map(mapRowToItem);
   }
 
   public async getItemById(id: string): Promise<Item | null> {
     const { db } = getDatabase();
+    if (!db) {
+      const webList = getWebItems();
+      return webList.find((i) => i.id === id) || null;
+    }
     const rows = await db.select().from(items).where(eq(items.id, id)).limit(1);
     if (!rows.length) return null;
     return mapRowToItem(rows[0]);
@@ -85,6 +121,13 @@ export class ItemRepository {
       updatedAt: nowIso,
     };
 
+    if (!db) {
+      const current = getWebItems();
+      saveWebItems([...current, newItem]);
+      await notificationService.scheduleItemReminders(newItem, dailyNotificationTime);
+      return newItem;
+    }
+
     await db.insert(items).values({
       id: newItem.id,
       name: newItem.name,
@@ -102,7 +145,6 @@ export class ItemRepository {
       updatedAt: newItem.updatedAt,
     });
 
-    // Handle deterministic notification scheduling
     if (newItem.status === 'active') {
       const records = await notificationService.scheduleItemReminders(newItem, dailyNotificationTime);
       for (const record of records) {
@@ -136,6 +178,17 @@ export class ItemRepository {
       updatedAt: nowIso,
     };
 
+    if (!db) {
+      const list = getWebItems().map((item) => (item.id === updated.id ? updated : item));
+      saveWebItems(list);
+      if (updated.status === 'active') {
+        await notificationService.scheduleItemReminders(updated, dailyNotificationTime);
+      } else {
+        await notificationService.cancelItemReminders(updated.id);
+      }
+      return updated;
+    }
+
     await db
       .update(items)
       .set({
@@ -154,7 +207,6 @@ export class ItemRepository {
       })
       .where(eq(items.id, updated.id));
 
-    // Cancel existing notification records and reschedule
     await db.delete(notificationRecords).where(eq(notificationRecords.itemId, updated.id));
     if (updated.status === 'active') {
       const records = await notificationService.scheduleItemReminders(updated, dailyNotificationTime);
@@ -187,6 +239,24 @@ export class ItemRepository {
     const nowIso = new Date().toISOString();
     const statusChangedAt = newStatus === 'active' ? null : nowIso;
 
+    const updatedItem: Item = {
+      ...existing,
+      status: newStatus,
+      statusChangedAt,
+      updatedAt: nowIso,
+    };
+
+    if (!db) {
+      const list = getWebItems().map((item) => (item.id === id ? updatedItem : item));
+      saveWebItems(list);
+      if (newStatus === 'active') {
+        await notificationService.scheduleItemReminders(updatedItem, dailyNotificationTime);
+      } else {
+        await notificationService.cancelItemReminders(id);
+      }
+      return updatedItem;
+    }
+
     await db
       .update(items)
       .set({
@@ -196,14 +266,6 @@ export class ItemRepository {
       })
       .where(eq(items.id, id));
 
-    const updatedItem: Item = {
-      ...existing,
-      status: newStatus,
-      statusChangedAt,
-      updatedAt: nowIso,
-    };
-
-    // Manage notifications based on status change
     await db.delete(notificationRecords).where(eq(notificationRecords.itemId, id));
     if (newStatus === 'active') {
       const records = await notificationService.scheduleItemReminders(updatedItem, dailyNotificationTime);
@@ -225,6 +287,13 @@ export class ItemRepository {
   public async deleteItem(id: string): Promise<void> {
     const { db } = getDatabase();
     await notificationService.cancelItemReminders(id);
+
+    if (!db) {
+      const list = getWebItems().filter((item) => item.id !== id);
+      saveWebItems(list);
+      return;
+    }
+
     await db.delete(notificationRecords).where(eq(notificationRecords.itemId, id));
     await db.delete(items).where(eq(items.id, id));
   }

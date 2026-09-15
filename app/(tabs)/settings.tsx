@@ -43,8 +43,12 @@ export default function SettingsScreen() {
                   style: 'destructive',
                   onPress: async () => {
                     const { db } = getDatabase();
-                    await db.delete(notificationRecords);
-                    await db.delete(items);
+                    if (db) {
+                      await db.delete(notificationRecords);
+                      await db.delete(items);
+                    } else if (typeof window !== 'undefined' && window.localStorage) {
+                      window.localStorage.removeItem('dateora_items_data');
+                    }
                     await loadItems();
                     await loadHistory();
                     Alert.alert('Data Cleared', 'All items have been removed.');

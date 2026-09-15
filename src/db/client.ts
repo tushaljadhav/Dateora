@@ -1,22 +1,40 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 import * as schema from './schema';
 
 export const DB_NAME = 'dateora.db';
+
+export const isWeb = Platform.OS === 'web';
 
 let expoDb: SQLite.SQLiteDatabase | null = null;
 let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 export function getDatabase() {
-  if (!dbInstance) {
-    expoDb = SQLite.openDatabaseSync(DB_NAME);
-    dbInstance = drizzle(expoDb, { schema });
+  if (isWeb) {
+    return { db: null, expoDb: null };
   }
-  return { db: dbInstance, expoDb: expoDb! };
+
+  if (!dbInstance) {
+    try {
+      expoDb = SQLite.openDatabaseSync(DB_NAME);
+      dbInstance = drizzle(expoDb, { schema });
+    } catch (e) {
+      console.warn('Native SQLite not available, falling back:', e);
+      return { db: null, expoDb: null };
+    }
+  }
+  return { db: dbInstance, expoDb };
 }
 
 export async function initializeDatabase(): Promise<void> {
+  if (isWeb) {
+    // Web uses LocalStorage / in-memory adapter automatically
+    return;
+  }
+
   const { expoDb } = getDatabase();
+  if (!expoDb) return;
 
   await expoDb.execAsync(`
     PRAGMA journal_mode = WAL;

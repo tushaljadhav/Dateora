@@ -206,6 +206,38 @@ export default function ItemsScreen() {
             );
           }}
         />
+
+        {/* Category Multi-Select Row (PRD §4.3) */}
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={PRESET_CATEGORIES}
+          keyExtractor={(c) => c.id}
+          contentContainerStyle={[styles.chipsRow, { marginTop: 6 }]}
+          renderItem={({ item: cat }) => {
+            const isSelected = selectedCategories.includes(cat.name.toLowerCase());
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.categoryFilterChip,
+                  isSelected
+                    ? { backgroundColor: theme.primaryLight, borderColor: theme.primary }
+                    : { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => toggleCategory(cat.name.toLowerCase())}
+              >
+                <Text
+                  style={[
+                    styles.categoryFilterChipText,
+                    isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.textMuted },
+                  ]}
+                >
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
       </View>
 
       {/* Items List */}
@@ -288,6 +320,15 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 13,
+  },
+  categoryFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  categoryFilterChipText: {
+    fontSize: 12,
   },
   listContent: {
     paddingHorizontal: 16,
