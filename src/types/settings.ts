@@ -10,7 +10,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  theme: 'system',
+  theme: 'dark',
   defaultReminderOffsets: [3],
   dailyNotificationTime: '09:00',
   expiringSoonWindowDays: 7,

@@ -79,7 +79,7 @@ export default function HomeScreen() {
             onPress={() => handleStatPress('all')}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: theme.surfaceSubtle }]}>
+            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
               <PackageCheck size={18} color={theme.primary} />
             </View>
             <Text style={[styles.statNumber, { color: theme.text }]}>{totalCount}</Text>
@@ -91,10 +91,10 @@ export default function HomeScreen() {
             onPress={() => handleStatPress('expiring_soon')}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEF3C7' }]}>
-              <Clock size={18} color={theme.warningDark} />
+            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <Clock size={18} color="#FBBF24" />
             </View>
-            <Text style={[styles.statNumber, { color: theme.warningDark }]}>{expiringCount}</Text>
+            <Text style={[styles.statNumber, { color: '#FBBF24' }]}>{expiringCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textMuted }]}>Expiring Soon</Text>
           </TouchableOpacity>
 
@@ -103,10 +103,10 @@ export default function HomeScreen() {
             onPress={() => handleStatPress('expired')}
             activeOpacity={0.7}
           >
-            <View style={[styles.statIconBadge, { backgroundColor: '#FEE2E2' }]}>
-              <AlertCircle size={18} color={theme.danger} />
+            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+              <AlertCircle size={18} color="#F87171" />
             </View>
-            <Text style={[styles.statNumber, { color: theme.danger }]}>{expiredCount}</Text>
+            <Text style={[styles.statNumber, { color: '#F87171' }]}>{expiredCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textMuted }]}>Expired</Text>
           </TouchableOpacity>
         </View>

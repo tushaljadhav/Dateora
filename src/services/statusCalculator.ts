@@ -56,9 +56,9 @@ export function evaluateItemStatus(
       label: 'Expired',
       daysLeft,
       relativeText,
-      badgeBg: '#FEE2E2', // light red
-      textColor: brandColors.danger,
-      borderColor: '#FCA5A5',
+      badgeBg: 'rgba(239, 68, 68, 0.15)',
+      textColor: '#F87171',
+      borderColor: 'rgba(239, 68, 68, 0.35)',
       iconName: 'AlertCircle',
     };
   }
@@ -69,9 +69,9 @@ export function evaluateItemStatus(
       label: 'Expires Today',
       daysLeft: 0,
       relativeText: 'Expires today',
-      badgeBg: '#FEF3C7', // light amber
-      textColor: brandColors.warningDark,
-      borderColor: '#FCD34D',
+      badgeBg: 'rgba(245, 158, 11, 0.15)',
+      textColor: '#FBBF24',
+      borderColor: 'rgba(245, 158, 11, 0.35)',
       iconName: 'Clock',
     };
   }
@@ -82,9 +82,9 @@ export function evaluateItemStatus(
       label: 'Expires Tomorrow',
       daysLeft: 1,
       relativeText: 'Expires tomorrow',
-      badgeBg: '#FEF3C7',
-      textColor: brandColors.warningDark,
-      borderColor: '#FCD34D',
+      badgeBg: 'rgba(245, 158, 11, 0.15)',
+      textColor: '#FBBF24',
+      borderColor: 'rgba(245, 158, 11, 0.35)',
       iconName: 'Clock',
     };
   }
@@ -95,9 +95,9 @@ export function evaluateItemStatus(
       label: `In ${daysLeft} days`,
       daysLeft,
       relativeText: `Expires in ${daysLeft} days`,
-      badgeBg: '#FEF3C7',
-      textColor: brandColors.warningDark,
-      borderColor: '#FCD34D',
+      badgeBg: 'rgba(245, 158, 11, 0.15)',
+      textColor: '#FBBF24',
+      borderColor: 'rgba(245, 158, 11, 0.35)',
       iconName: 'Clock',
     };
   }
@@ -107,9 +107,9 @@ export function evaluateItemStatus(
     label: 'Safe',
     daysLeft,
     relativeText: `Expires in ${daysLeft} days`,
-    badgeBg: '#DCFCE7', // light green
-    textColor: brandColors.successDark,
-    borderColor: '#86EFAC',
+    badgeBg: 'rgba(16, 185, 129, 0.15)',
+    textColor: '#34D399',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
     iconName: 'CheckCircle',
   };
 }
