@@ -26,15 +26,11 @@ import {
   Package,
   Layers,
   Bell,
-  Milk,
-  Pill,
-  Sparkle,
-  Home,
-  Coffee,
-  HelpCircle,
   Archive,
 } from 'lucide-react-native';
 import { StatusPill } from '../../src/components/StatusPill';
+import { CategoryBadge } from '../../src/components/CategoryBadge';
+import { getCategoryVisual } from '../../src/theme/categoryVisuals';
 
 export default function ItemDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -130,24 +126,7 @@ export default function ItemDetailsScreen() {
     );
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'groceries':
-      case 'food':
-        return <Milk size={32} color={theme.primary} />;
-      case 'medicine':
-        return <Pill size={32} color="#06B6D4" />;
-      case 'skincare':
-      case 'cosmetics':
-        return <Sparkle size={32} color="#EC4899" />;
-      case 'household':
-        return <Home size={32} color="#8B5CF6" />;
-      case 'beverages':
-        return <Coffee size={32} color="#F59E0B" />;
-      default:
-        return <Package size={32} color={theme.primary} />;
-    }
-  };
+  const categoryVisual = getCategoryVisual(item.category);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -165,22 +144,41 @@ export default function ItemDetailsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero Card */}
         <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={[styles.heroIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
-            {getCategoryIcon(item.category)}
-          </View>
-
-          <View style={styles.heroTitleRow}>
-            <View style={styles.heroTextCol}>
-              <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
-              <View style={[styles.categoryTag, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7' }]}>
-                <Text style={[styles.categoryTagText, { color: theme.primary }]}>@ {item.category}</Text>
-              </View>
-            </View>
-
+          <View style={styles.heroTopRow}>
+            <CategoryBadge category={item.category} size="xl" />
             <StatusPill
               daysLeft={evaluation.daysLeft}
               status={evaluation.status}
             />
+          </View>
+
+          <View style={styles.heroTitleCol}>
+            <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
+            <View style={styles.heroTagsRow}>
+              <View
+                style={[
+                  styles.categoryTag,
+                  {
+                    backgroundColor: isDark ? categoryVisual.bgColorDark : categoryVisual.bgColorLight,
+                    borderColor: isDark ? categoryVisual.borderColorDark : categoryVisual.borderColorLight,
+                  },
+                ]}
+              >
+                <Text style={styles.categoryTagEmoji}>{categoryVisual.emoji}</Text>
+                <Text style={[styles.categoryTagText, { color: isDark ? '#FFFFFF' : categoryVisual.color }]}>
+                  {categoryVisual.name}
+                </Text>
+              </View>
+
+              {item.location && (
+                <View style={[styles.locationTag, { backgroundColor: theme.surfaceSubtle }]}>
+                  <MapPin size={12} color={theme.textMuted} />
+                  <Text style={[styles.locationTagText, { color: theme.textSecondary }]}>
+                    {item.location}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -374,54 +372,59 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   heroCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     padding: 20,
     marginBottom: 16,
-    alignItems: 'center',
   },
-  heroIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  heroTitleRow: {
-    width: '100%',
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
   },
-  heroTextCol: {
-    flex: 1,
-    paddingRight: 10,
+  heroTitleCol: {
+    width: '100%',
   },
   itemName: {
     fontSize: 22,
     fontWeight: '800',
-    marginBottom: 4,
+    letterSpacing: -0.3,
+    marginBottom: 8,
+  },
+  heroTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   categoryTag: {
-    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
+    borderWidth: 1,
+  },
+  categoryTagEmoji: {
+    fontSize: 13,
   },
   categoryTagText: {
     fontSize: 12,
     fontWeight: '700',
   },
-  statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 9999,
-    borderWidth: 1,
   },
-  statusPillText: {
+  locationTagText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   card: {
     borderRadius: 16,

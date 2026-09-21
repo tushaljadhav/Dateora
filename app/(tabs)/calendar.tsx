@@ -5,8 +5,9 @@ import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { evaluateItemStatus, formatDisplayDate } from '../../src/services/statusCalculator';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Milk, Pill, Sparkle, Home, Coffee } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Sparkles } from 'lucide-react-native';
 import { StatusPill } from '../../src/components/StatusPill';
+import { CategoryBadge } from '../../src/components/CategoryBadge';
 
 export default function CalendarScreen() {
   const { theme } = useTheme();
@@ -69,25 +70,6 @@ export default function CalendarScreen() {
   };
 
   const selectedDayItems = selectedDayStr ? itemsByDate[selectedDayStr] || [] : [];
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'groceries':
-      case 'food':
-        return <Milk size={18} color={theme.primary} />;
-      case 'medicine':
-        return <Pill size={18} color="#06B6D4" />;
-      case 'skincare':
-      case 'cosmetics':
-        return <Sparkle size={18} color="#EC4899" />;
-      case 'household':
-        return <Home size={18} color="#8B5CF6" />;
-      case 'beverages':
-        return <Coffee size={18} color="#F59E0B" />;
-      default:
-        return <Package size={18} color={theme.primary} />;
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -203,9 +185,7 @@ export default function CalendarScreen() {
                     onPress={() => router.push(`/item/${item.id}`)}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.sheetItemIcon, { backgroundColor: theme.surfaceSubtle }]}>
-                      {getCategoryIcon(item.category)}
-                    </View>
+                    <CategoryBadge category={item.category} size="md" />
 
                     <View style={styles.sheetItemTextCol}>
                       <Text style={[styles.sheetItemName, { color: theme.text }]} numberOfLines={1}>

@@ -15,6 +15,7 @@ import { Item, ItemLifecycleStatus } from '../../src/types/item';
 import { formatDisplayDate } from '../../src/services/statusCalculator';
 import { RotateCcw, CheckCircle2, Trash2, Archive, XCircle } from 'lucide-react-native';
 import { EmptyState } from '../../src/components/EmptyState';
+import { CategoryBadge } from '../../src/components/CategoryBadge';
 
 type HistoryFilterTab = 'all' | 'used' | 'finished' | 'disposed';
 
@@ -110,25 +111,29 @@ export default function HistoryScreen() {
 
     return (
       <View style={[styles.historyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <View style={styles.cardMain}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View style={[styles.statusPill, { backgroundColor: badge.bg }]}>
-              <Text style={[styles.statusText, { color: badge.text }]}>{badge.label}</Text>
+        <View style={styles.cardHeaderRow}>
+          <CategoryBadge category={item.category} size="md" />
+
+          <View style={styles.cardMain}>
+            <View style={styles.titleRow}>
+              <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <View style={[styles.statusPill, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.statusText, { color: badge.text }]}>{badge.label}</Text>
+              </View>
             </View>
-          </View>
 
-          <Text style={[styles.subText, { color: theme.textSecondary }]}>
-            Expiry: {formatDisplayDate(item.expiryDate)} • {item.category}
-          </Text>
-
-          {item.statusChangedAt && (
-            <Text style={[styles.metaText, { color: theme.textMuted }]}>
-              Marked on {new Date(item.statusChangedAt).toLocaleDateString()}
+            <Text style={[styles.subText, { color: theme.textSecondary }]}>
+              Expiry: {formatDisplayDate(item.expiryDate)} • {item.category}
             </Text>
-          )}
+
+            {item.statusChangedAt && (
+              <Text style={[styles.metaText, { color: theme.textMuted }]}>
+                Marked on {new Date(item.statusChangedAt).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
         </View>
 
         <View style={[styles.actionsRow, { borderTopColor: theme.border }]}>
@@ -154,11 +159,11 @@ export default function HistoryScreen() {
     );
   };
 
-  const tabs: Array<{ id: HistoryFilterTab; label: string }> = [
-    { id: 'all', label: 'All' },
-    { id: 'used', label: 'Used' },
-    { id: 'finished', label: 'Finished' },
-    { id: 'disposed', label: 'Disposed' },
+  const tabs: Array<{ id: HistoryFilterTab; label: string; emoji: string }> = [
+    { id: 'all', label: 'All', emoji: '🗂️' },
+    { id: 'used', label: 'Used', emoji: '✅' },
+    { id: 'finished', label: 'Finished', emoji: '✨' },
+    { id: 'disposed', label: 'Disposed', emoji: '🗑️' },
   ];
 
   return (
@@ -177,6 +182,7 @@ export default function HistoryScreen() {
               onPress={() => setActiveTab(tab.id)}
               activeOpacity={0.7}
             >
+              <Text style={styles.tabEmoji}>{tab.emoji}</Text>
               <Text
                 style={[
                   styles.tabLabel,
@@ -231,12 +237,17 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+  },
+  tabEmoji: {
+    fontSize: 12,
   },
   tabLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   listContent: {
@@ -249,8 +260,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    gap: 12,
+  },
   cardMain: {
-    padding: 16,
+    flex: 1,
   },
   titleRow: {
     flexDirection: 'row',

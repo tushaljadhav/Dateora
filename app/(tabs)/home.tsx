@@ -24,15 +24,13 @@ import {
   ChevronRight,
   Sparkles,
   AlertTriangle,
-  Milk,
-  Pill,
-  Sparkle,
-  Home,
-  Coffee,
-  HelpCircle,
+  Camera,
+  MapPin,
 } from 'lucide-react-native';
 import { DateoraLogo } from '../../src/components/DateoraLogo';
 import { StatusPill } from '../../src/components/StatusPill';
+import { CategoryBadge } from '../../src/components/CategoryBadge';
+import { POPULAR_CATEGORIES } from '../../src/theme/categoryVisuals';
 
 export default function HomeScreen() {
   const { theme, isDark } = useTheme();
@@ -45,6 +43,8 @@ export default function HomeScreen() {
   const expiringSoonWindowDays = useSettingsStore((s) => s.expiringSoonWindowDays);
   const setStatusFilter = useFiltersStore((s) => s.setStatusFilter);
   const setSearchQuery = useFiltersStore((s) => s.setSearchQuery);
+  const toggleCategory = useFiltersStore((s) => s.toggleCategory);
+  const clearCategories = useFiltersStore((s) => s.clearCategories);
 
   const [localSearch, setLocalSearch] = useState('');
 
@@ -95,23 +95,10 @@ export default function HomeScreen() {
     router.push('/(tabs)/items');
   };
 
-  const getCategoryIcon = (category: string, color: string) => {
-    switch (category.toLowerCase()) {
-      case 'groceries':
-      case 'food':
-        return <Milk size={20} color={color} />;
-      case 'medicine':
-        return <Pill size={20} color={color} />;
-      case 'skincare':
-      case 'cosmetics':
-        return <Sparkle size={20} color={color} />;
-      case 'household':
-        return <Home size={20} color={color} />;
-      case 'beverages':
-        return <Coffee size={20} color={color} />;
-      default:
-        return <Package size={20} color={color} />;
-    }
+  const handleCategoryPress = (catId: string) => {
+    clearCategories();
+    toggleCategory(catId);
+    router.push('/(tabs)/items');
   };
 
   return (
@@ -159,13 +146,78 @@ export default function HomeScreen() {
           <Search size={18} color={theme.textMuted} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search items..."
+            placeholder="Search items, medicines, dairy..."
             placeholderTextColor={theme.textMuted}
             value={localSearch}
             onChangeText={setLocalSearch}
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
           />
+        </View>
+
+        {/* Visual Hero Banner Card */}
+        <View
+          style={[
+            styles.heroBanner,
+            {
+              backgroundColor: isDark ? 'rgba(22, 163, 74, 0.12)' : '#F0FDF4',
+              borderColor: isDark ? 'rgba(34, 197, 94, 0.25)' : '#DCFCE7',
+            },
+          ]}
+        >
+          <View style={styles.heroBannerTextCol}>
+            <View
+              style={[
+                styles.heroBannerBadge,
+                { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7' },
+              ]}
+            >
+              <Sparkles size={12} color={theme.primary} />
+              <Text style={[styles.heroBannerBadgeText, { color: theme.primary }]}>
+                Stay Fresh
+              </Text>
+            </View>
+            <Text style={[styles.heroBannerTitle, { color: theme.text }]}>
+              Zero Food Waste
+            </Text>
+            <Text style={[styles.heroBannerSubtitle, { color: theme.textSecondary }]}>
+              Keep items fresh & get timely smart alarms.
+            </Text>
+          </View>
+          <Image
+            source={require('../../assets/illustrations/groceries_hero.png')}
+            style={styles.heroBannerImage}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Quick Categories Bar */}
+        <View style={styles.categoriesSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesScroll}
+          >
+            {POPULAR_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={[
+                  styles.categoryChip,
+                  {
+                    backgroundColor: isDark ? cat.bgColorDark : cat.bgColorLight,
+                    borderColor: isDark ? cat.borderColorDark : cat.borderColorLight,
+                  },
+                ]}
+                onPress={() => handleCategoryPress(cat.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.categoryChipEmoji}>{cat.emoji}</Text>
+                <Text style={[styles.categoryChipText, { color: isDark ? '#FFFFFF' : cat.color }]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Metric Cards Grid (2 Column Clean Cards matching Reference Board) */}
@@ -201,15 +253,32 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Quick Add Item Prominent Green Button */}
-        <TouchableOpacity
-          style={[styles.quickAddButton, { backgroundColor: theme.primary }]}
-          onPress={() => router.push('/add-item')}
-          activeOpacity={0.85}
-        >
-          <Plus size={20} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={styles.quickAddButtonText}>Add Item</Text>
-        </TouchableOpacity>
+        {/* Quick Actions Row: Add & Scan */}
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={[styles.primaryActionBtn, { backgroundColor: theme.primary }]}
+            onPress={() => router.push('/add-item')}
+            activeOpacity={0.85}
+          >
+            <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={styles.primaryActionBtnText}>Add Item</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.secondaryActionBtn,
+              {
+                backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : '#DCFCE7',
+                borderColor: isDark ? 'rgba(34, 197, 94, 0.25)' : '#BBF7D0',
+              },
+            ]}
+            onPress={() => router.push('/add-item')}
+            activeOpacity={0.85}
+          >
+            <Camera size={18} color={theme.primary} />
+            <Text style={[styles.secondaryActionBtnText, { color: theme.primary }]}>Scan Barcode</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Expiring Soon Section */}
         <View style={styles.sectionHeaderRow}>
@@ -245,14 +314,25 @@ export default function HomeScreen() {
                   onPress={() => router.push(`/item/${item.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.itemIconContainer, { backgroundColor: theme.surfaceSubtle }]}>
-                    {getCategoryIcon(item.category, theme.primary)}
-                  </View>
+                  <CategoryBadge category={item.category} size="md" />
 
                   <View style={styles.itemInfo}>
                     <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
                       {item.name}
                     </Text>
+                    <View style={styles.itemMetaRow}>
+                      <Text style={[styles.itemCategoryTag, { color: theme.primary }]}>
+                        {item.category}
+                      </Text>
+                      {item.location && (
+                        <View style={styles.locationChip}>
+                          <MapPin size={10} color={theme.textMuted} />
+                          <Text style={[styles.locationChipText, { color: theme.textMuted }]}>
+                            {item.location}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
                       {isExpired ? 'Expired' : isToday ? 'Expires today' : evaluation.relativeText}
                     </Text>
@@ -353,6 +433,73 @@ const styles = StyleSheet.create({
     fontSize: 15,
     height: '100%',
   },
+  heroBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  heroBannerTextCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  heroBannerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    marginBottom: 6,
+  },
+  heroBannerBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroBannerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  heroBannerSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  heroBannerImage: {
+    width: 86,
+    height: 86,
+    flexShrink: 0,
+  },
+  categoriesSection: {
+    marginBottom: 16,
+  },
+  categoriesScroll: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  categoryChipEmoji: {
+    fontSize: 15,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   metricsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -391,23 +538,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  quickAddButton: {
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 24,
+  },
+  primaryActionBtn: {
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
+    height: 50,
     borderRadius: 14,
-    gap: 8,
-    marginBottom: 26,
+    gap: 6,
     shadowColor: '#16A34A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 3,
   },
-  quickAddButtonText: {
+  primaryActionBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 6,
+  },
+  secondaryActionBtnText: {
+    fontSize: 14,
     fontWeight: '700',
   },
   sectionHeaderRow: {
@@ -434,29 +600,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    padding: 12,
+    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
     elevation: 1,
   },
-  itemIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
   itemInfo: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 4,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+    marginBottom: 2,
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 3,
+  },
+  itemCategoryTag: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  locationChipText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   itemSubtitle: {
     fontSize: 13,

@@ -22,25 +22,21 @@ import {
   ChevronRight,
   Plus,
   ArrowUpDown,
-  Milk,
-  Pill,
-  Sparkle,
-  Home,
-  Coffee,
-  HelpCircle,
-  Package,
+  MapPin,
 } from 'lucide-react-native';
 import { StatusPill } from '../../src/components/StatusPill';
 import { EmptyState } from '../../src/components/EmptyState';
+import { CategoryBadge } from '../../src/components/CategoryBadge';
 
 const CATEGORIES = [
-  { id: 'all', label: 'All' },
-  { id: 'food', label: 'Food' },
-  { id: 'medicine', label: 'Medicine' },
-  { id: 'cosmetics', label: 'Cosmetics' },
-  { id: 'household', label: 'Household' },
-  { id: 'beverages', label: 'Beverages' },
-  { id: 'others', label: 'Others' },
+  { id: 'all', label: 'All', emoji: '✨' },
+  { id: 'groceries', label: 'Groceries', emoji: '🥦' },
+  { id: 'dairy', label: 'Dairy', emoji: '🥛' },
+  { id: 'medicine', label: 'Medicine', emoji: '💊' },
+  { id: 'skincare', label: 'Skincare', emoji: '✨' },
+  { id: 'beverages', label: 'Drinks', emoji: '☕' },
+  { id: 'household', label: 'Household', emoji: '🏠' },
+  { id: 'pantry', label: 'Pantry', emoji: '📦' },
 ];
 
 export default function ItemsScreen() {
@@ -133,25 +129,6 @@ export default function ItemsScreen() {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'groceries':
-      case 'food':
-        return <Milk size={20} color={theme.primary} />;
-      case 'medicine':
-        return <Pill size={20} color="#06B6D4" />;
-      case 'skincare':
-      case 'cosmetics':
-        return <Sparkle size={20} color="#EC4899" />;
-      case 'household':
-        return <Home size={20} color="#8B5CF6" />;
-      case 'beverages':
-        return <Coffee size={20} color="#F59E0B" />;
-      default:
-        return <Package size={20} color={theme.primary} />;
-    }
-  };
-
   const renderItem = ({ item }: { item: Item }) => {
     const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
 
@@ -161,16 +138,27 @@ export default function ItemsScreen() {
         onPress={() => router.push(`/item/${item.id}`)}
         activeOpacity={0.7}
       >
-        <View style={[styles.itemIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
-          {getCategoryIcon(item.category)}
-        </View>
+        <CategoryBadge category={item.category} size="md" />
 
         <View style={styles.itemInfo}>
           <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
             {item.name}
           </Text>
+          <View style={styles.itemMetaRow}>
+            <Text style={[styles.itemCategoryTag, { color: theme.primary }]}>
+              {item.category}
+            </Text>
+            {item.location && (
+              <View style={styles.locationChip}>
+                <MapPin size={10} color={theme.textMuted} />
+                <Text style={[styles.locationChipText, { color: theme.textMuted }]}>
+                  {item.location}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
-            {formatDisplayDate(item.expiryDate)} {item.location ? `• ${item.location}` : ''}
+            {formatDisplayDate(item.expiryDate)} • {evaluation.relativeText}
           </Text>
         </View>
 
@@ -260,6 +248,7 @@ export default function ItemsScreen() {
                 }}
                 activeOpacity={0.7}
               >
+                <Text style={styles.categoryPillEmoji}>{cat.emoji}</Text>
                 <Text
                   style={[
                     styles.categoryPillText,
@@ -394,10 +383,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryPill: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 9999,
     borderWidth: 1,
+  },
+  categoryPillEmoji: {
+    fontSize: 13,
   },
   categoryPillText: {
     fontSize: 13,
@@ -413,24 +408,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
-  },
-  itemIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
+    padding: 12,
+    gap: 12,
   },
   itemInfo: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 4,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+    marginBottom: 2,
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 3,
+  },
+  itemCategoryTag: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  locationChipText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   itemSubtitle: {
     fontSize: 13,

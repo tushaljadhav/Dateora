@@ -31,32 +31,27 @@ import {
   Plus,
   Check,
 } from 'lucide-react-native';
+import { CATEGORY_VISUALS, DEFAULT_CATEGORY_VISUAL } from '../src/theme/categoryVisuals';
 
-interface CategoryTile {
-  id: string;
-  name: string;
-  icon: any;
-  color: string;
-  bgColor: string;
-}
-
-const CATEGORY_TILES: CategoryTile[] = [
-  { id: 'Food', name: 'Food', icon: Milk, color: '#16A34A', bgColor: 'rgba(22, 163, 74, 0.1)' },
-  { id: 'Medicine', name: 'Medicine', icon: Pill, color: '#06B6D4', bgColor: 'rgba(6, 182, 212, 0.1)' },
-  { id: 'Cosmetics', name: 'Cosmetics', icon: Sparkle, color: '#EC4899', bgColor: 'rgba(236, 72, 153, 0.1)' },
-  { id: 'Household', name: 'Household', icon: Home, color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.1)' },
-  { id: 'Beverages', name: 'Beverages', icon: Coffee, color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.1)' },
-  { id: 'Others', name: 'Others', icon: HelpCircle, color: '#64748B', bgColor: 'rgba(100, 116, 139, 0.1)' },
+const CATEGORY_TILES = [
+  CATEGORY_VISUALS.groceries,
+  CATEGORY_VISUALS.dairy,
+  CATEGORY_VISUALS.medicine,
+  CATEGORY_VISUALS.skincare,
+  CATEGORY_VISUALS.beverages,
+  CATEGORY_VISUALS.household,
+  CATEGORY_VISUALS.pantry,
+  DEFAULT_CATEGORY_VISUAL,
 ];
 
 export default function AddItemScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
   const addItem = useItemsStore((s) => s.addItem);
 
   // Form Fields
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<string>('Food');
+  const [category, setCategory] = useState<string>('groceries');
   const [expiryDate, setExpiryDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -198,23 +193,37 @@ export default function AddItemScreen() {
         <Text style={[styles.sectionHeading, { color: theme.text }]}>Select Category</Text>
         <View style={styles.categoryGrid}>
           {CATEGORY_TILES.map((cat) => {
-            const isSelected = category === cat.id;
-            const IconComp = cat.icon;
+            const isSelected = category.toLowerCase() === cat.id.toLowerCase();
+            const bgColor = isSelected
+              ? (isDark ? cat.bgColorDark : cat.bgColorLight)
+              : theme.surface;
+            const borderColor = isSelected
+              ? theme.primary
+              : (isDark ? cat.borderColorDark : theme.border);
+
             return (
               <TouchableOpacity
                 key={cat.id}
                 style={[
                   styles.categoryTile,
                   {
-                    backgroundColor: isSelected ? cat.bgColor : theme.surface,
-                    borderColor: isSelected ? theme.primary : theme.border,
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
                   },
                 ]}
                 onPress={() => setCategory(cat.id)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.categoryTileIcon, { backgroundColor: cat.bgColor }]}>
-                  <IconComp size={20} color={cat.color} />
+                <View
+                  style={[
+                    styles.categoryTileIcon,
+                    {
+                      backgroundColor: isDark ? cat.bgColorDark : cat.bgColorLight,
+                      borderColor: isDark ? cat.borderColorDark : cat.borderColorLight,
+                    },
+                  ]}
+                >
+                  <Text style={styles.categoryTileEmoji}>{cat.emoji}</Text>
                 </View>
                 <Text
                   style={[
@@ -222,6 +231,7 @@ export default function AddItemScreen() {
                     { color: isSelected ? theme.primary : theme.text },
                     isSelected && { fontWeight: '700' },
                   ]}
+                  numberOfLines={1}
                 >
                   {cat.name}
                 </Text>
@@ -299,10 +309,10 @@ export default function AddItemScreen() {
             {/* Quick Presets matching reference board */}
             <View style={styles.quickChipsWrap}>
               {[
-                { label: 'Today', days: 0 },
-                { label: '+3 days', days: 3 },
-                { label: '+7 days', days: 7 },
-                { label: '+30 days', days: 30 },
+                { label: 'Today', days: 0, emoji: '⚡' },
+                { label: '+3 days', days: 3, emoji: '📅' },
+                { label: '+7 days', days: 7, emoji: '🗓️' },
+                { label: '+30 days', days: 30, emoji: '📦' },
               ].map((preset) => {
                 const target = new Date();
                 target.setDate(target.getDate() + preset.days);
@@ -321,6 +331,7 @@ export default function AddItemScreen() {
                     onPress={() => setQuickDate(preset.days)}
                     activeOpacity={0.7}
                   >
+                    <Text style={styles.quickChipEmoji}>{preset.emoji}</Text>
                     <Text
                       style={[
                         styles.quickChipText,
@@ -381,6 +392,43 @@ export default function AddItemScreen() {
               value={location}
               onChangeText={setLocation}
             />
+
+            {/* Quick Location Chips */}
+            <View style={[styles.quickChipsWrap, { marginTop: 8 }]}>
+              {[
+                { label: 'Fridge', emoji: '❄️' },
+                { label: 'Freezer', emoji: '🧊' },
+                { label: 'Pantry', emoji: '🧺' },
+                { label: 'Medicine Box', emoji: '💊' },
+                { label: 'Bathroom', emoji: '🧴' },
+              ].map((loc) => {
+                const isSelected = location === loc.label;
+                return (
+                  <TouchableOpacity
+                    key={loc.label}
+                    style={[
+                      styles.quickChip,
+                      isSelected
+                        ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                        : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                    ]}
+                    onPress={() => setLocation(isSelected ? '' : loc.label)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickChipEmoji}>{loc.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                        isSelected && { fontWeight: '700' },
+                      ]}
+                    >
+                      {loc.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           {/* Reminder Trigger Offsets */}
@@ -537,28 +585,36 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
     marginBottom: 16,
   },
   categoryTile: {
-    width: '31.3%',
+    width: '23%',
     borderRadius: 14,
     borderWidth: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   categoryTileIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryTileEmoji: {
+    fontSize: 18,
+  },
   categoryTileLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  quickChipEmoji: {
+    fontSize: 12,
   },
   formCard: {
     borderRadius: 16,
