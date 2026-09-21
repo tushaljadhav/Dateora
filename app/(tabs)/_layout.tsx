@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { View, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../src/theme';
 import { Home, Package, Calendar, History, Settings } from 'lucide-react-native';
 
@@ -15,20 +16,31 @@ export default function TabLayout() {
           backgroundColor: theme.tabBarBackground,
           borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          paddingTop: 8,
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.03,
+          shadowRadius: 6,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
+          fontWeight: '600',
+          marginTop: 2,
         },
         headerStyle: {
           backgroundColor: theme.surface,
+          borderBottomColor: theme.border,
+          borderBottomWidth: 1,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         headerTintColor: theme.text,
         headerTitleStyle: {
-          fontWeight: '600',
+          fontWeight: '700',
+          fontSize: 17,
         },
       }}
     >
@@ -36,16 +48,20 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
-          headerTitle: 'Dateora',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size || 22} />,
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Home color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          ),
         }}
       />
       <Tabs.Screen
         name="items"
         options={{
           title: 'Items',
-          headerTitle: 'All Items',
-          tabBarIcon: ({ color, size }) => <Package color={color} size={size || 22} />,
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Package color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -53,15 +69,19 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           headerTitle: 'Expiry Calendar',
-          tabBarIcon: ({ color, size }) => <Calendar color={color} size={size || 22} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Calendar color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          ),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
-          headerTitle: 'Item History',
-          tabBarIcon: ({ color, size }) => <History color={color} size={size || 22} />,
+          headerTitle: 'History & Archive',
+          tabBarIcon: ({ color, focused }) => (
+            <History color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -69,7 +89,9 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           headerTitle: 'Settings',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size || 22} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Settings color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          ),
         }}
       />
     </Tabs>

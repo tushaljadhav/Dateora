@@ -1,13 +1,19 @@
 /**
  * Dateora Corner Radius Scale
- * Strict scale: 12px cards, 8px chips/buttons/inputs, 9999px pills. Never mixed.
+ * Apple Health & Notion inspired rounded corners and pills.
  */
 export const radius = {
-  button: 8,
-  chip: 8,
-  input: 8,
-  card: 12,
-  sheet: 16,
+  xs: 6,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  button: 14,
+  chip: 9999,
+  input: 12,
+  card: 16,
+  sheet: 24,
   pill: 9999,
 } as const;
 

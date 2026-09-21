@@ -5,7 +5,7 @@ import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { evaluateItemStatus, formatDisplayDate } from '../../src/services/statusCalculator';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Milk, Pill, Sparkle, Home, Coffee } from 'lucide-react-native';
 
 export default function CalendarScreen() {
   const { theme } = useTheme();
@@ -15,7 +15,13 @@ export default function CalendarScreen() {
   const expiringSoonWindowDays = useSettingsStore((s) => s.expiringSoonWindowDays);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDayStr, setSelectedDayStr] = useState<string | null>(null);
+  const [selectedDayStr, setSelectedDayStr] = useState<string | null>(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -59,21 +65,39 @@ export default function CalendarScreen() {
 
   const changeMonth = (offset: number) => {
     setCurrentDate(new Date(year, month + offset, 1));
-    setSelectedDayStr(null);
   };
 
   const selectedDayItems = selectedDayStr ? itemsByDate[selectedDayStr] || [] : [];
 
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'groceries':
+      case 'food':
+        return <Milk size={18} color={theme.primary} />;
+      case 'medicine':
+        return <Pill size={18} color="#06B6D4" />;
+      case 'skincare':
+      case 'cosmetics':
+        return <Sparkle size={18} color="#EC4899" />;
+      case 'household':
+        return <Home size={18} color="#8B5CF6" />;
+      case 'beverages':
+        return <Coffee size={18} color="#F59E0B" />;
+      default:
+        return <Package size={18} color={theme.primary} />;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Month Header Navigation */}
         <View style={[styles.headerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navArrow}>
+          <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navArrow} activeOpacity={0.7}>
             <ChevronLeft size={20} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.monthTitle, { color: theme.text }]}>{monthName}</Text>
-          <TouchableOpacity onPress={() => changeMonth(1)} style={styles.navArrow}>
+          <TouchableOpacity onPress={() => changeMonth(1)} style={styles.navArrow} activeOpacity={0.7}>
             <ChevronRight size={20} color={theme.text} />
           </TouchableOpacity>
         </View>
@@ -89,25 +113,24 @@ export default function CalendarScreen() {
 
         {/* Month Grid */}
         <View style={[styles.gridCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.grid}>
+          <View style={styles.daysGrid}>
             {calendarDays.map((cell, index) => {
               if (cell.dayNumber === null || !cell.dateString) {
                 return <View key={`empty-${index}`} style={styles.dayCell} />;
               }
 
-              const dayItems = itemsByDate[cell.dateString] || [];
               const isSelected = selectedDayStr === cell.dateString;
+              const cellItems = itemsByDate[cell.dateString] || [];
+              const hasItems = cellItems.length > 0;
 
-              // Determine dot color
-              let dotColor: string | null = null;
-              if (dayItems.length > 0) {
-                const evaluations = dayItems.map((i) => evaluateItemStatus(i.expiryDate, expiringSoonWindowDays));
+              // Dot colors
+              let dotColor = theme.primary;
+              if (hasItems) {
+                const evaluations = cellItems.map((i) => evaluateItemStatus(i.expiryDate, expiringSoonWindowDays));
                 if (evaluations.some((e) => e.status === 'expired')) {
-                  dotColor = theme.danger;
+                  dotColor = '#EF4444';
                 } else if (evaluations.some((e) => e.status === 'expiring_soon')) {
-                  dotColor = theme.warning;
-                } else {
-                  dotColor = theme.success;
+                  dotColor = '#F59E0B';
                 }
               }
 
@@ -116,80 +139,98 @@ export default function CalendarScreen() {
                   key={cell.dateString}
                   style={[
                     styles.dayCell,
-                    isSelected && { backgroundColor: theme.surfaceSubtle, borderRadius: 8, borderColor: theme.primary, borderWidth: 1 },
+                    isSelected && { backgroundColor: theme.primary, borderRadius: 12 },
                   ]}
                   onPress={() => setSelectedDayStr(cell.dateString)}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.dayNumberText,
-                      { color: isSelected ? theme.primary : theme.text },
+                      { color: isSelected ? '#FFFFFF' : theme.text },
                       isSelected && { fontWeight: '700' },
                     ]}
                   >
                     {cell.dayNumber}
                   </Text>
-                  {dotColor && <View style={[styles.dot, { backgroundColor: dotColor }]} />}
+
+                  {hasItems && (
+                    <View style={styles.dotsRow}>
+                      <View
+                        style={[
+                          styles.statusDot,
+                          { backgroundColor: isSelected ? '#FFFFFF' : dotColor },
+                        ]}
+                      />
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* Selected Day Items Sheet / Section */}
-        {selectedDayStr ? (
-          <View style={styles.selectedDaySection}>
-            <View style={styles.selectedHeaderRow}>
-              <CalendarIcon size={18} color={theme.primary} />
-              <Text style={[styles.selectedDayTitle, { color: theme.text }]}>
-                {formatDisplayDate(selectedDayStr)}
-              </Text>
-              <Text style={[styles.selectedDayCount, { color: theme.textMuted }]}>
-                ({selectedDayItems.length} {selectedDayItems.length === 1 ? 'item' : 'items'})
-              </Text>
-            </View>
-
-            {selectedDayItems.length === 0 ? (
-              <View style={[styles.noItemsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.noItemsText, { color: theme.textMuted }]}>No items expiring on this date.</Text>
-              </View>
-            ) : (
-              <View style={styles.dayItemsList}>
-                {selectedDayItems.map((item) => {
-                  const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => router.push(`/item/${item.id}`)}
-                    >
-                      <View style={styles.itemCardLeft}>
-                        <Text style={[styles.itemCardName, { color: theme.text }]}>{item.name}</Text>
-                        <Text style={[styles.itemCardCategory, { color: theme.textMuted }]}>{item.category}</Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: evaluation.badgeBg, borderColor: evaluation.borderColor },
-                        ]}
-                      >
-                        <Text style={[styles.statusBadgeText, { color: evaluation.textColor }]}>
-                          {evaluation.label}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+        {/* Selected Day Sheet */}
+        <View style={styles.sheetSection}>
+          <View style={styles.sheetHeaderRow}>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              {selectedDayStr ? formatDisplayDate(selectedDayStr) : 'Select a date'}
+            </Text>
+            {selectedDayItems.length > 0 && (
+              <View style={[styles.sheetCountBadge, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+                <Text style={[styles.sheetCountText, { color: theme.primary }]}>
+                  {selectedDayItems.length} expiring
+                </Text>
               </View>
             )}
           </View>
-        ) : (
-          <View style={[styles.tapHintCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.tapHintText, { color: theme.textMuted }]}>
-              Tap any date with a colored dot to view expiring items.
-            </Text>
-          </View>
-        )}
+
+          {selectedDayItems.length === 0 ? (
+            <View style={[styles.emptySheetCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.emptySheetText, { color: theme.textSecondary }]}>
+                No items expiring on this date.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.sheetItemsList}>
+              {selectedDayItems.map((item) => {
+                const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.sheetItemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                    onPress={() => router.push(`/item/${item.id}`)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.sheetItemIcon, { backgroundColor: theme.surfaceSubtle }]}>
+                      {getCategoryIcon(item.category)}
+                    </View>
+
+                    <View style={styles.sheetItemTextCol}>
+                      <Text style={[styles.sheetItemName, { color: theme.text }]} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.sheetItemCategory, { color: theme.textSecondary }]}>
+                        {item.category} {item.location ? `• ${item.location}` : ''}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.sheetStatusPill,
+                        { backgroundColor: evaluation.badgeBg },
+                      ]}
+                    >
+                      <Text style={[styles.sheetStatusPillText, { color: evaluation.textColor }]}>
+                        {evaluation.relativeText}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -200,43 +241,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
   headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 16,
   },
   navArrow: {
-    padding: 6,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   monthTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   weekDaysRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
     marginBottom: 8,
   },
   weekDayLabel: {
-    fontSize: 12,
-    fontWeight: '600',
     width: 40,
     textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
   },
   gridCard: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    padding: 8,
+    padding: 12,
     marginBottom: 20,
   },
-  grid: {
+  daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
@@ -249,80 +295,87 @@ const styles = StyleSheet.create({
   },
   dayNumberText: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 2,
     position: 'absolute',
     bottom: 6,
   },
-  selectedDaySection: {
-    marginTop: 4,
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
-  selectedHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+  sheetSection: {
+    gap: 12,
   },
-  selectedDayTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  selectedDayCount: {
-    fontSize: 14,
-  },
-  noItemsCard: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  noItemsText: {
-    fontSize: 14,
-  },
-  dayItemsList: {
-    gap: 8,
-  },
-  itemCard: {
+  sheetHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 4,
   },
-  itemCardLeft: {
-    flex: 1,
-    marginRight: 8,
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: '700',
   },
-  itemCardName: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  itemCardCategory: {
-    fontSize: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
+  sheetCountBadge: {
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
-    borderWidth: 1,
   },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
+  sheetCountText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  tapHintCard: {
-    padding: 16,
-    borderRadius: 12,
+  emptySheetCard: {
+    borderRadius: 16,
     borderWidth: 1,
+    padding: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  tapHintText: {
-    fontSize: 13,
-    textAlign: 'center',
+  emptySheetText: {
+    fontSize: 14,
+  },
+  sheetItemsList: {
+    gap: 10,
+  },
+  sheetItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+  },
+  sheetItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  sheetItemTextCol: {
+    flex: 1,
+  },
+  sheetItemName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  sheetItemCategory: {
+    fontSize: 12,
+  },
+  sheetStatusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+  },
+  sheetStatusPillText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

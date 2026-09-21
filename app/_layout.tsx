@@ -32,14 +32,13 @@ function RootNavigation() {
           name="add-item"
           options={{
             presentation: 'modal',
-            title: 'Add Item',
-            headerBackTitle: 'Cancel',
+            headerShown: false,
           }}
         />
         <Stack.Screen
           name="item/[id]"
           options={{
-            title: 'Item Details',
+            headerShown: false,
           }}
         />
         <Stack.Screen

@@ -1,10 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  Platform,
+} from 'react-native';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { Item, ItemLifecycleStatus } from '../../src/types/item';
 import { formatDisplayDate } from '../../src/services/statusCalculator';
-import { RotateCcw, CheckCircle2, Trash2, Archive } from 'lucide-react-native';
+import { RotateCcw, CheckCircle2, Trash2, Archive, XCircle } from 'lucide-react-native';
 
 type HistoryFilterTab = 'all' | 'used' | 'finished' | 'disposed';
 
@@ -85,13 +94,13 @@ export default function HistoryScreen() {
   const getStatusBadge = (status: ItemLifecycleStatus) => {
     switch (status) {
       case 'used':
-        return { label: 'Used', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.35)' };
+        return { label: 'Used', bg: 'rgba(22, 163, 74, 0.12)', text: '#16A34A' };
       case 'finished':
-        return { label: 'Finished', bg: 'rgba(6, 182, 212, 0.15)', text: '#22D3EE', border: 'rgba(6, 182, 212, 0.35)' };
+        return { label: 'Finished', bg: 'rgba(6, 182, 212, 0.12)', text: '#0891B2' };
       case 'disposed':
-        return { label: 'Disposed', bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', border: 'rgba(239, 68, 68, 0.35)' };
+        return { label: 'Disposed', bg: 'rgba(239, 68, 68, 0.12)', text: '#DC2626' };
       default:
-        return { label: status, bg: theme.surfaceSubtle, text: theme.textSecondary, border: theme.border };
+        return { label: status, bg: theme.surfaceSubtle, text: theme.textSecondary };
     }
   };
 
@@ -105,85 +114,106 @@ export default function HistoryScreen() {
             <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
               {item.name}
             </Text>
-            <View style={[styles.statusPill, { backgroundColor: badge.bg, borderColor: badge.border, borderWidth: 1 }]}>
+            <View style={[styles.statusPill, { backgroundColor: badge.bg }]}>
               <Text style={[styles.statusText, { color: badge.text }]}>{badge.label}</Text>
             </View>
           </View>
 
-          <Text style={[styles.subText, { color: theme.textMuted }]}>
+          <Text style={[styles.subText, { color: theme.textSecondary }]}>
             Expiry: {formatDisplayDate(item.expiryDate)} • {item.category}
           </Text>
 
           {item.statusChangedAt && (
             <Text style={[styles.metaText, { color: theme.textMuted }]}>
-              Logged {new Date(item.statusChangedAt).toLocaleDateString()}
+              Marked on {new Date(item.statusChangedAt).toLocaleDateString()}
             </Text>
           )}
         </View>
 
         <View style={[styles.actionsRow, { borderTopColor: theme.border }]}>
           <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: 'rgba(59, 130, 246, 0.3)', backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}
+            style={[styles.actionBtn, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}
             onPress={() => handleRestore(item)}
+            activeOpacity={0.7}
           >
-            <RotateCcw size={14} color={theme.primaryLight} />
-            <Text style={[styles.actionBtnText, { color: theme.primaryLight }]}>Restore</Text>
+            <RotateCcw size={15} color={theme.primary} />
+            <Text style={[styles.actionBtnText, { color: theme.primary }]}>Restore</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.deleteIconBtn, { borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+            style={[styles.actionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}
             onPress={() => handleDeletePermanent(item)}
+            activeOpacity={0.7}
           >
             <Trash2 size={15} color={theme.danger} />
+            <Text style={[styles.actionBtnText, { color: theme.danger }]}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  const tabs: Array<{ id: HistoryFilterTab; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'used', label: 'Used' },
+    { id: 'finished', label: 'Finished' },
+    { id: 'disposed', label: 'Disposed' },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Filter Tabs */}
-      <View style={styles.tabsRow}>
-        {(['all', 'used', 'finished', 'disposed'] as const).map((tab) => {
-          const isSelected = activeTab === tab;
-          const label = tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1);
+      <View style={[styles.tabBarContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        {tabs.map((tab) => {
+          const isSelected = activeTab === tab.id;
           return (
             <TouchableOpacity
-              key={tab}
+              key={tab.id}
               style={[
-                styles.tabChip,
-                isSelected
-                  ? { backgroundColor: theme.primary, borderColor: theme.primary }
-                  : { backgroundColor: theme.surface, borderColor: theme.border },
+                styles.tabItem,
+                isSelected && { borderBottomColor: theme.primary, borderBottomWidth: 2 },
               ]}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => setActiveTab(tab.id)}
+              activeOpacity={0.7}
             >
               <Text
                 style={[
-                  styles.tabChipText,
-                  isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.textSecondary },
+                  styles.tabLabel,
+                  { color: isSelected ? theme.primary : theme.textSecondary },
+                  isSelected && { fontWeight: '700' },
                 ]}
               >
-                {label}
+                {tab.label}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
+      {/* History Items FlatList */}
       <FlatList
         data={filteredHistory}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
         ListEmptyComponent={
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Archive size={32} color={theme.textMuted} style={{ marginBottom: 8 }} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No history records</Text>
-            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-              Items you mark as Used, Finished, or Disposed will appear here.
+          <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
+              <Archive size={36} color={theme.textMuted} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No history items</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+              {activeTab === 'all'
+                ? 'Items marked as used, finished, or disposed will appear here.'
+                : `No items marked as ${activeTab} yet.`}
             </Text>
           </View>
         }
@@ -196,105 +226,102 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabsRow: {
+  tabBarContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    borderBottomWidth: 1,
   },
-  tabChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+  tabItem: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabChipText: {
-    fontSize: 13,
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    gap: 10,
+    padding: 20,
+    paddingBottom: 40,
+    gap: 12,
   },
   historyCard: {
-    padding: 14,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   cardMain: {
-    marginBottom: 12,
+    padding: 16,
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   itemName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 9999,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   subText: {
     fontSize: 13,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   metaText: {
-    fontSize: 11,
+    fontSize: 12,
   },
   actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 10,
+    padding: 10,
+    gap: 10,
   },
   actionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 10,
+    gap: 6,
   },
   actionBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  deleteIconBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 80,
   },
-  emptyCard: {
-    padding: 32,
-    borderRadius: 12,
-    borderWidth: 1,
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  emptyText: {
+  emptySubtitle: {
     fontSize: 13,
     textAlign: 'center',
+    paddingHorizontal: 24,
+    lineHeight: 18,
   },
 });

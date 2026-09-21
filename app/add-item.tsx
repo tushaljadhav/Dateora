@@ -15,43 +15,68 @@ import { useTheme } from '../src/theme';
 import { useItemsStore } from '../src/stores/useItemsStore';
 import { PRESET_CATEGORIES, NewItemInput } from '../src/types/item';
 import { evaluateItemStatus } from '../src/services/statusCalculator';
-import { ChevronDown, ChevronUp, Check, Calendar, AlertTriangle } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Barcode,
+  Camera,
+  ChevronRight,
+  Milk,
+  Pill,
+  Sparkle,
+  Home,
+  Coffee,
+  HelpCircle,
+  Calendar,
+  AlertCircle,
+  Plus,
+  Check,
+} from 'lucide-react-native';
+
+interface CategoryTile {
+  id: string;
+  name: string;
+  icon: any;
+  color: string;
+  bgColor: string;
+}
+
+const CATEGORY_TILES: CategoryTile[] = [
+  { id: 'Food', name: 'Food', icon: Milk, color: '#16A34A', bgColor: 'rgba(22, 163, 74, 0.1)' },
+  { id: 'Medicine', name: 'Medicine', icon: Pill, color: '#06B6D4', bgColor: 'rgba(6, 182, 212, 0.1)' },
+  { id: 'Cosmetics', name: 'Cosmetics', icon: Sparkle, color: '#EC4899', bgColor: 'rgba(236, 72, 153, 0.1)' },
+  { id: 'Household', name: 'Household', icon: Home, color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.1)' },
+  { id: 'Beverages', name: 'Beverages', icon: Coffee, color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.1)' },
+  { id: 'Others', name: 'Others', icon: HelpCircle, color: '#64748B', bgColor: 'rgba(100, 116, 139, 0.1)' },
+];
 
 export default function AddItemScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const addItem = useItemsStore((s) => s.addItem);
 
-  // Required Fields
+  // Form Fields
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<string>('Groceries');
-  const [customCategory, setCustomCategory] = useState('');
+  const [category, setCategory] = useState<string>('Food');
   const [expiryDate, setExpiryDate] = useState<string>(() => {
-    // Default to 7 days from now
     const d = new Date();
     d.setDate(d.getDate() + 7);
     return d.toISOString().split('T')[0];
   });
 
-  // Reminder offsets (days before)
-  const [reminderOffsets, setReminderOffsets] = useState<number[]>([3]);
-
-  // Optional "Add more details" collapsed section
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [reminderOffsets, setReminderOffsets] = useState<number[]>([3, 1]);
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Evaluate if chosen date is already expired
+  // Evaluate chosen date
   const evaluation = useMemo(() => {
     if (!expiryDate) return null;
     return evaluateItemStatus(expiryDate);
   }, [expiryDate]);
 
-  // Quick Expiry Date helpers
+  // Quick Date presets
   const setQuickDate = (daysFromNow: number) => {
     const target = new Date();
     target.setDate(target.getDate() + daysFromNow);
@@ -63,15 +88,26 @@ export default function AddItemScreen() {
 
   const toggleReminderOffset = (offset: number) => {
     if (reminderOffsets.includes(offset)) {
-      setReminderOffsets(reminderOffsets.filter((o) => o !== offset));
+      if (reminderOffsets.length > 1) {
+        setReminderOffsets(reminderOffsets.filter((o) => o !== offset));
+      }
     } else {
       setReminderOffsets([...reminderOffsets, offset].sort((a, b) => b - a));
     }
   };
 
+  const handleScannerPress = (type: 'barcode' | 'camera') => {
+    const label = type === 'barcode' ? 'Barcode scanner' : 'Photo recognition';
+    if (Platform.OS === 'web') {
+      alert(`${label} is configured for the Android mobile release. You can enter the details manually below.`);
+    } else {
+      Alert.alert(label, 'Automated camera scanner is ready for device build. Enter details below for fast manual add.');
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Required Field', 'Please enter an item name.');
+      Alert.alert('Required', 'Please enter an item name.');
       return;
     }
 
@@ -80,13 +116,11 @@ export default function AddItemScreen() {
       return;
     }
 
-    const finalCategory = category === 'Custom' ? (customCategory.trim() || 'Custom') : category;
-
     setIsSubmitting(true);
     try {
       const input: NewItemInput = {
         name: name.trim(),
-        category: finalCategory,
+        category,
         expiryDate,
         reminderOffsets,
         quantity: quantity ? parseFloat(quantity) : null,
@@ -98,8 +132,8 @@ export default function AddItemScreen() {
       await addItem(input);
       router.back();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Could not save item';
-      Alert.alert('Error', msg);
+      const message = err instanceof Error ? err.message : 'Could not save item.';
+      Alert.alert('Error', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,230 +144,260 @@ export default function AddItemScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Item Name */}
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Item Name *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-            placeholder="e.g. Organic Whole Milk"
-            placeholderTextColor={theme.textMuted}
-            value={name}
-            onChangeText={setName}
-            autoFocus
-          />
+      {/* Top App Header */}
+      <View style={[styles.headerBar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+          <ArrowLeft size={22} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Add Item</Text>
+        <View style={styles.headerRightPlaceholder} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Quick Action Cards: Barcode & Camera */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            style={[styles.quickCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => handleScannerPress('barcode')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickIconCircle, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+              <Barcode size={22} color={theme.primary} />
+            </View>
+            <View style={styles.quickTextCol}>
+              <Text style={[styles.quickTitle, { color: theme.text }]}>Scan Barcode</Text>
+              <Text style={[styles.quickSubtitle, { color: theme.textSecondary }]}>Scan product barcode</Text>
+            </View>
+            <ChevronRight size={18} color={theme.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => handleScannerPress('camera')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+              <Camera size={22} color="#10B981" />
+            </View>
+            <View style={styles.quickTextCol}>
+              <Text style={[styles.quickTitle, { color: theme.text }]}>Take Photo</Text>
+              <Text style={[styles.quickSubtitle, { color: theme.textSecondary }]}>Use camera to identify</Text>
+            </View>
+            <ChevronRight size={18} color={theme.textMuted} />
+          </TouchableOpacity>
         </View>
 
-        {/* Category Picker */}
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Category *</Text>
-          <View style={styles.categoryGrid}>
-            {PRESET_CATEGORIES.map((cat) => {
-              const isSelected = category === cat.name;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
+        {/* Divider OR */}
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+          <Text style={[styles.dividerText, { color: theme.textMuted }]}>OR ADD MANUALLY</Text>
+          <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+        </View>
+
+        {/* Category Grid Tiles */}
+        <Text style={[styles.sectionHeading, { color: theme.text }]}>Select Category</Text>
+        <View style={styles.categoryGrid}>
+          {CATEGORY_TILES.map((cat) => {
+            const isSelected = category === cat.id;
+            const IconComp = cat.icon;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={[
+                  styles.categoryTile,
+                  {
+                    backgroundColor: isSelected ? cat.bgColor : theme.surface,
+                    borderColor: isSelected ? theme.primary : theme.border,
+                  },
+                ]}
+                onPress={() => setCategory(cat.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.categoryTileIcon, { backgroundColor: cat.bgColor }]}>
+                  <IconComp size={20} color={cat.color} />
+                </View>
+                <Text
                   style={[
-                    styles.categoryChip,
-                    isSelected
-                      ? { backgroundColor: theme.primary, borderColor: theme.primary }
-                      : { backgroundColor: theme.surface, borderColor: theme.border },
+                    styles.categoryTileLabel,
+                    { color: isSelected ? theme.primary : theme.text },
+                    isSelected && { fontWeight: '700' },
                   ]}
-                  onPress={() => setCategory(cat.name)}
                 >
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.text },
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Form Fields Card */}
+        <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {/* Item Name */}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Item Name *</Text>
+            <TextInput
+              style={[styles.textInput, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text }]}
+              placeholder="e.g., Whole Milk, Paracetamol, Eye Cream"
+              placeholderTextColor={theme.textMuted}
+              value={name}
+              onChangeText={setName}
+            />
           </View>
 
-          {category === 'Custom' && (
+          {/* Expiry Date */}
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelRowBetween}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Expiry Date *</Text>
+              {evaluation && (
+                <Text style={[styles.evaluationPill, { color: evaluation.textColor }]}>
+                  {evaluation.label}
+                </Text>
+              )}
+            </View>
+
             <TextInput
               style={[
-                styles.input,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.text,
-                  marginTop: 8,
-                },
+                styles.textInput,
+                { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
               ]}
-              placeholder="Enter custom category name"
-              placeholderTextColor={theme.textMuted}
-              value={customCategory}
-              onChangeText={setCustomCategory}
-            />
-          )}
-        </View>
-
-        {/* Expiry Date */}
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Expiry Date (YYYY-MM-DD) *</Text>
-
-          {/* Quick Date Chips */}
-          <View style={styles.quickChipsRow}>
-            {[
-              { label: 'Today', offset: 0 },
-              { label: 'Tomorrow', offset: 1 },
-              { label: '7 Days', offset: 7 },
-              { label: '30 Days', offset: 30 },
-            ].map((chip) => (
-              <TouchableOpacity
-                key={chip.label}
-                style={[styles.quickChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
-                onPress={() => setQuickDate(chip.offset)}
-              >
-                <Text style={[styles.quickChipText, { color: theme.textSecondary }]}>{chip.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={[styles.dateInputRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Calendar size={18} color={theme.textMuted} />
-            <TextInput
-              style={[styles.dateInput, { color: theme.text }]}
-              value={expiryDate}
-              onChangeText={setExpiryDate}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.textMuted}
-              maxLength={10}
+              value={expiryDate}
+              onChangeText={setExpiryDate}
+            />
+
+            {/* Quick Presets */}
+            <View style={styles.quickChipsWrap}>
+              {[
+                { label: '+3 Days', days: 3 },
+                { label: '+1 Week', days: 7 },
+                { label: '+1 Month', days: 30 },
+                { label: '+6 Months', days: 180 },
+                { label: '+1 Year', days: 365 },
+              ].map((preset) => (
+                <TouchableOpacity
+                  key={preset.label}
+                  style={[styles.quickChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+                  onPress={() => setQuickDate(preset.days)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.quickChipText, { color: theme.textSecondary }]}>{preset.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Quantity & Unit */}
+          <View style={styles.twoColRow}>
+            <View style={[styles.fieldGroup, { flex: 1 }]}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Quantity</Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
+                ]}
+                placeholder="e.g. 1"
+                placeholderTextColor={theme.textMuted}
+                keyboardType="numeric"
+                value={quantity}
+                onChangeText={setQuantity}
+              />
+            </View>
+
+            <View style={[styles.fieldGroup, { flex: 1 }]}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Unit</Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
+                ]}
+                placeholder="carton, L, pcs"
+                placeholderTextColor={theme.textMuted}
+                value={unit}
+                onChangeText={setUnit}
+              />
+            </View>
+          </View>
+
+          {/* Storage Location */}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Storage Location</Text>
+            <TextInput
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
+              ]}
+              placeholder="e.g. Fridge, Top Pantry, Bathroom Cabinet"
+              placeholderTextColor={theme.textMuted}
+              value={location}
+              onChangeText={setLocation}
             />
           </View>
 
-          {evaluation && evaluation.status === 'expired' && (
-            <View style={[styles.expiredNotice, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}>
-              <AlertTriangle size={16} color={theme.danger} />
-              <Text style={[styles.expiredNoticeText, { color: theme.danger }]}>
-                This date is in the past (already expired).
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Reminder Selector */}
-        <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Reminder Schedule</Text>
-          <Text style={[styles.subLabel, { color: theme.textMuted }]}>
-            Choose when to get notified before expiry:
-          </Text>
-          <View style={styles.reminderChipsRow}>
-            {[
-              { label: '7 days before', value: 7 },
-              { label: '3 days before', value: 3 },
-              { label: '1 day before', value: 1 },
-              { label: 'On expiry day', value: 0 },
-            ].map((rem) => {
-              const isSelected = reminderOffsets.includes(rem.value);
-              return (
-                <TouchableOpacity
-                  key={rem.value}
-                  style={[
-                    styles.reminderChip,
-                    isSelected
-                      ? { backgroundColor: theme.primary, borderColor: theme.primary }
-                      : { backgroundColor: theme.surface, borderColor: theme.border },
-                  ]}
-                  onPress={() => toggleReminderOffset(rem.value)}
-                >
-                  {isSelected && <Check size={14} color="#FFFFFF" style={{ marginRight: 4 }} />}
-                  <Text
+          {/* Reminder Trigger Offsets */}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Remind Me</Text>
+            <View style={styles.reminderOffsetsRow}>
+              {[
+                { offset: 0, label: 'Day of' },
+                { offset: 1, label: '1d before' },
+                { offset: 3, label: '3d before' },
+                { offset: 7, label: '7d before' },
+              ].map(({ offset, label }) => {
+                const isSelected = reminderOffsets.includes(offset);
+                return (
+                  <TouchableOpacity
+                    key={offset}
                     style={[
-                      styles.reminderChipText,
-                      isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.text },
+                      styles.offsetChip,
+                      isSelected
+                        ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                        : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
                     ]}
+                    onPress={() => toggleReminderOffset(offset)}
+                    activeOpacity={0.7}
                   >
-                    {rem.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.offsetChipText,
+                        { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                        isSelected && { fontWeight: '700' },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Notes */}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Notes (Optional)</Text>
+            <TextInput
+              style={[
+                styles.notesInput,
+                { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
+              ]}
+              placeholder="Batch number, opened date, or notes..."
+              placeholderTextColor={theme.textMuted}
+              multiline
+              numberOfLines={3}
+              value={notes}
+              onChangeText={setNotes}
+            />
           </View>
         </View>
-
-        {/* Optional Collapsible Details */}
-        <TouchableOpacity
-          style={[styles.collapseHeader, { borderColor: theme.border }]}
-          onPress={() => setShowMoreDetails(!showMoreDetails)}
-        >
-          <Text style={[styles.collapseHeaderText, { color: theme.primary }]}>
-            {showMoreDetails ? 'Hide additional details' : '+ Add more details (optional)'}
-          </Text>
-          {showMoreDetails ? (
-            <ChevronUp size={18} color={theme.primary} />
-          ) : (
-            <ChevronDown size={18} color={theme.primary} />
-          )}
-        </TouchableOpacity>
-
-        {showMoreDetails && (
-          <View style={styles.moreDetailsContainer}>
-            <View style={styles.rowForm}>
-              <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: theme.text }]}>Quantity</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="e.g. 2"
-                  placeholderTextColor={theme.textMuted}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={[styles.label, { color: theme.text }]}>Unit</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                  placeholder="e.g. bottles, lbs"
-                  placeholderTextColor={theme.textMuted}
-                  value={unit}
-                  onChangeText={setUnit}
-                />
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: theme.text }]}>Storage Location</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                placeholder="e.g. Fridge Top Shelf, Bathroom Cabinet"
-                placeholderTextColor={theme.textMuted}
-                value={location}
-                onChangeText={setLocation}
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: theme.text }]}>Notes</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.textArea,
-                  { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text },
-                ]}
-                placeholder="Batch number, unopened vs opened, instructions..."
-                placeholderTextColor={theme.textMuted}
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
-        )}
 
         {/* Save Button */}
         <TouchableOpacity
           style={[styles.saveButton, { backgroundColor: theme.primary }]}
           onPress={handleSave}
           disabled={isSubmitting}
+          activeOpacity={0.85}
         >
+          <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
           <Text style={styles.saveButtonText}>{isSubmitting ? 'Saving...' : 'Save Item'}</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -345,52 +409,155 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBar: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  headerRightPlaceholder: {
+    width: 40,
+  },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  formGroup: {
-    marginBottom: 20,
+  quickActionsContainer: {
+    gap: 10,
+    marginBottom: 16,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  subLabel: {
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  input: {
-    height: 46,
-    borderRadius: 8,
+  quickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 15,
+    padding: 14,
   },
-  textArea: {
-    height: 80,
-    paddingTop: 10,
-    textAlignVertical: 'top',
+  quickIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  quickTextCol: {
+    flex: 1,
+  },
+  quickTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  quickSubtitle: {
+    fontSize: 12,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: 4,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
+    marginBottom: 16,
   },
-  categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+  categoryTile: {
+    width: '31.3%',
+    borderRadius: 14,
     borderWidth: 1,
-  },
-  categoryChipText: {
-    fontSize: 13,
-  },
-  quickChipsRow: {
-    flexDirection: 'row',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginBottom: 8,
+  },
+  categoryTileIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryTileLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  formCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 16,
+    marginBottom: 20,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  labelRowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  evaluationPill: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  textInput: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    fontSize: 15,
+  },
+  notesInput: {
+    minHeight: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: 'top',
+  },
+  quickChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
   },
   quickChip: {
     paddingHorizontal: 10,
@@ -400,79 +567,39 @@ const styles = StyleSheet.create({
   },
   quickChipText: {
     fontSize: 12,
+    fontWeight: '500',
   },
-  dateInputRow: {
+  reminderOffsetsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    height: 46,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    gap: 10,
-  },
-  dateInput: {
-    flex: 1,
-    fontSize: 15,
-    height: '100%',
-  },
-  expiredNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginTop: 8,
-  },
-  expiredNoticeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  reminderChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  reminderChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+  offsetChip: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
     borderWidth: 1,
-  },
-  reminderChipText: {
-    fontSize: 13,
-  },
-  collapseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    marginBottom: 16,
-  },
-  collapseHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  moreDetailsContainer: {
-    marginBottom: 16,
-  },
-  rowForm: {
-    flexDirection: 'row',
-  },
-  saveButton: {
-    height: 48,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+  },
+  offsetChipText: {
+    fontSize: 12,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
   },
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

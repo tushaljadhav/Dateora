@@ -37,13 +37,13 @@ export const ThemeProvider: React.FC<{
   children: React.ReactNode;
   preference?: ThemePreference;
   onPreferenceChange?: (pref: ThemePreference) => void;
-}> = ({ children, preference = 'dark', onPreferenceChange }) => {
+}> = ({ children, preference = 'light', onPreferenceChange }) => {
   const systemScheme = useColorScheme();
 
   const isDark = useMemo(() => {
+    if (preference === 'dark') return true;
     if (preference === 'light') return false;
-    // Default to true (GoTall signature dark aesthetic)
-    return true;
+    return systemScheme === 'dark';
   }, [preference, systemScheme]);
 
   const theme = isDark ? darkTheme : lightTheme;

@@ -38,6 +38,7 @@ import {
   X,
   FileJson,
 } from 'lucide-react-native';
+import { DateoraLogo } from '../../src/components/DateoraLogo';
 
 const TIME_PRESETS = ['07:00', '08:00', '09:00', '10:00', '12:00', '18:00', '20:00'];
 const OFFSET_OPTIONS = [
@@ -234,8 +235,8 @@ export default function SettingsScreen() {
   };
 
   const themeOptions: Array<{ id: ThemePreference; label: string; icon: any }> = [
-    { id: 'dark', label: 'Dark', icon: Moon },
     { id: 'light', label: 'Light', icon: Sun },
+    { id: 'dark', label: 'Dark', icon: Moon },
     { id: 'system', label: 'System', icon: Monitor },
   ];
 
@@ -252,9 +253,14 @@ export default function SettingsScreen() {
         />
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Branding Header Card */}
+        <View style={[styles.brandCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <DateoraLogo size={44} showText tagline textColor={theme.text} />
+        </View>
+
         {/* Appearance Section */}
-        <Text style={[styles.sectionHeading, { color: theme.textMuted }]}>APPEARANCE</Text>
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>APPEARANCE</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Color Theme</Text>
           <View style={styles.themeRow}>
@@ -268,12 +274,13 @@ export default function SettingsScreen() {
                     styles.themeOption,
                     isSelected
                       ? {
-                          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                          backgroundColor: 'rgba(22, 163, 74, 0.12)',
                           borderColor: theme.primary,
                         }
                       : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
                   ]}
                   onPress={() => setPreference(opt.id)}
+                  activeOpacity={0.7}
                 >
                   <IconComp size={16} color={isSelected ? theme.primary : theme.text} />
                   <Text
@@ -292,14 +299,16 @@ export default function SettingsScreen() {
         </View>
 
         {/* Notifications Section */}
-        <Text style={[styles.sectionHeading, { color: theme.textMuted }]}>REMINDERS & NOTIFICATIONS</Text>
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>REMINDERS & NOTIFICATIONS</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
             <View style={styles.rowLabel}>
-              <Bell size={18} color={theme.primary} />
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+                <Bell size={18} color={theme.primary} />
+              </View>
               <View>
                 <Text style={[styles.labelTitle, { color: theme.text }]}>Enable Reminders</Text>
-                <Text style={[styles.labelSubtitle, { color: theme.textMuted }]}>
+                <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                   Schedule offline alerts on this device
                 </Text>
               </View>
@@ -316,10 +325,12 @@ export default function SettingsScreen() {
           {/* Daily Alert Time */}
           <View style={styles.rowBetween}>
             <View style={styles.rowLabel}>
-              <Clock size={18} color={theme.primary} />
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+                <Clock size={18} color={theme.primary} />
+              </View>
               <View>
                 <Text style={[styles.labelTitle, { color: theme.text }]}>Daily Alert Time</Text>
-                <Text style={[styles.labelSubtitle, { color: theme.textMuted }]}>
+                <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                   When morning notifications arrive
                 </Text>
               </View>
@@ -327,9 +338,10 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.timeBadge,
-                { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)' },
+                { backgroundColor: 'rgba(22, 163, 74, 0.12)', borderColor: 'rgba(22, 163, 74, 0.3)' },
               ]}
               onPress={() => setShowTimePicker(!showTimePicker)}
+              activeOpacity={0.7}
             >
               <Text style={[styles.timeBadgeText, { color: theme.primary }]}>{dailyNotificationTime}</Text>
             </TouchableOpacity>
@@ -338,7 +350,7 @@ export default function SettingsScreen() {
           {/* Time Picker Chips Dropdown */}
           {showTimePicker && (
             <View style={[styles.timePickerContainer, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
-              <Text style={[styles.pickerHint, { color: theme.textMuted }]}>Select preferred morning time:</Text>
+              <Text style={[styles.pickerHint, { color: theme.textSecondary }]}>Select preferred morning time:</Text>
               <View style={styles.chipsWrap}>
                 {TIME_PRESETS.map((time) => {
                   const isSelected = dailyNotificationTime === time;
@@ -355,6 +367,7 @@ export default function SettingsScreen() {
                         setDailyNotificationTime(time);
                         setShowTimePicker(false);
                       }}
+                      activeOpacity={0.7}
                     >
                       <Text
                         style={[
@@ -378,7 +391,7 @@ export default function SettingsScreen() {
           <View style={styles.rowBetween}>
             <View>
               <Text style={[styles.labelTitle, { color: theme.text }]}>Expiring Soon Threshold</Text>
-              <Text style={[styles.labelSubtitle, { color: theme.textMuted }]}>
+              <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                 Items turn amber when within this window
               </Text>
             </View>
@@ -395,6 +408,7 @@ export default function SettingsScreen() {
                         : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
                     ]}
                     onPress={() => setExpiringSoonWindowDays(days)}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
@@ -418,7 +432,7 @@ export default function SettingsScreen() {
             <Text style={[styles.labelTitle, { color: theme.text, marginBottom: 4 }]}>
               Default Reminder Triggers
             </Text>
-            <Text style={[styles.labelSubtitle, { color: theme.textMuted, marginBottom: 10 }]}>
+            <Text style={[styles.labelSubtitle, { color: theme.textSecondary, marginBottom: 10 }]}>
               Pre-selected alert intervals for new items
             </Text>
             <View style={styles.chipsWrap}>
@@ -430,10 +444,11 @@ export default function SettingsScreen() {
                     style={[
                       styles.chip,
                       isSelected
-                        ? { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: theme.primary }
+                        ? { backgroundColor: 'rgba(22, 163, 74, 0.14)', borderColor: theme.primary }
                         : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
                     ]}
                     onPress={() => handleToggleOffset(opt.value)}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
@@ -451,11 +466,11 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Data Portability (Phase 5) */}
-        <Text style={[styles.sectionHeading, { color: theme.textMuted }]}>BACKUP & DATA PORTABILITY</Text>
+        {/* Data Portability */}
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>BACKUP & DATA PORTABILITY</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Local Data Management</Text>
-          <Text style={[styles.labelSubtitle, { color: theme.textMuted, marginBottom: 14 }]}>
+          <Text style={[styles.labelSubtitle, { color: theme.textSecondary, marginBottom: 14 }]}>
             Export your items and history to a portable JSON backup file, or restore from an earlier backup.
           </Text>
 
@@ -463,10 +478,11 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.portabilityBtn,
-                { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.4)' },
+                { backgroundColor: 'rgba(22, 163, 74, 0.12)', borderColor: 'rgba(22, 163, 74, 0.3)' },
               ]}
               onPress={handleExport}
               disabled={exporting}
+              activeOpacity={0.7}
             >
               {exporting ? (
                 <ActivityIndicator size="small" color={theme.primary} />
@@ -481,21 +497,22 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[
                 styles.portabilityBtn,
-                { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: 'rgba(6, 182, 212, 0.4)' },
+                { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)' },
               ]}
               onPress={handlePickImportFile}
+              activeOpacity={0.7}
             >
-              <Upload size={18} color="#22D3EE" />
-              <Text style={[styles.portabilityBtnText, { color: '#22D3EE' }]}>Import Backup</Text>
+              <Upload size={18} color="#10B981" />
+              <Text style={[styles.portabilityBtnText, { color: '#10B981' }]}>Import Backup</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Data & Privacy */}
-        <Text style={[styles.sectionHeading, { color: theme.textMuted }]}>PRIVACY & RESET</Text>
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>PRIVACY & RESET</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.privacyBanner}>
-            <Shield size={20} color={theme.success} />
+            <Shield size={20} color={theme.primary} />
             <Text style={[styles.privacyText, { color: theme.textSecondary }]}>
               100% Offline & Private. No accounts, no trackers, no external cloud syncing. All data lives on this device.
             </Text>
@@ -503,15 +520,17 @@ export default function SettingsScreen() {
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-          <TouchableOpacity style={styles.rowBetween} onPress={handleClearAllData}>
+          <TouchableOpacity style={styles.rowBetween} onPress={handleClearAllData} activeOpacity={0.7}>
             <View style={styles.rowLabel}>
-              <Trash2 size={18} color={theme.danger} />
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
+                <Trash2 size={18} color={theme.danger} />
+              </View>
               <Text style={[styles.labelTitle, { color: theme.danger }]}>Delete All Data</Text>
             </View>
             <View
               style={[
                 styles.dangerBadge,
-                { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' },
+                { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)' },
               ]}
             >
               <Text style={[styles.dangerBadgeText, { color: theme.danger }]}>Erase</Text>
@@ -520,11 +539,11 @@ export default function SettingsScreen() {
         </View>
 
         {/* About Dateora */}
-        <Text style={[styles.sectionHeading, { color: theme.textMuted }]}>ABOUT</Text>
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>ABOUT</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
             <Text style={[styles.labelTitle, { color: theme.text }]}>Version</Text>
-            <Text style={[styles.valueText, { color: theme.textMuted }]}>1.0.0 (GoTall Dark Edition)</Text>
+            <Text style={[styles.valueText, { color: theme.textSecondary }]}>1.0.0 (Production Release)</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.rowBetween}>
@@ -549,7 +568,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Inspect Backup File</Text>
               </View>
               <TouchableOpacity onPress={() => setIsImportModalVisible(false)}>
-                <X size={20} color={theme.textMuted} />
+                <X size={20} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -561,18 +580,18 @@ export default function SettingsScreen() {
 
                 <View style={[styles.diffStatCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
                   <View style={styles.diffStatRow}>
-                    <CheckCircle2 size={18} color="#34D399" />
+                    <CheckCircle2 size={18} color="#16A34A" />
                     <Text style={[styles.diffStatText, { color: theme.text }]}>
-                      <Text style={{ fontWeight: '700', color: '#34D399' }}>{importPreview.newItemsCount}</Text> new
+                      <Text style={{ fontWeight: '700', color: '#16A34A' }}>{importPreview.newItemsCount}</Text> new
                       items will be added
                     </Text>
                   </View>
 
                   {importPreview.conflictItemsCount > 0 && (
                     <View style={styles.diffStatRow}>
-                      <AlertTriangle size={18} color="#FBBF24" />
+                      <AlertTriangle size={18} color="#F59E0B" />
                       <Text style={[styles.diffStatText, { color: theme.text }]}>
-                        <Text style={{ fontWeight: '700', color: '#FBBF24' }}>
+                        <Text style={{ fontWeight: '700', color: '#F59E0B' }}>
                           {importPreview.conflictItemsCount}
                         </Text>{' '}
                         items already exist (conflicts)
@@ -581,7 +600,7 @@ export default function SettingsScreen() {
                   )}
                 </View>
 
-                <Text style={[styles.actionPrompt, { color: theme.textMuted }]}>
+                <Text style={[styles.actionPrompt, { color: theme.textSecondary }]}>
                   Choose how to handle existing items:
                 </Text>
 
@@ -609,7 +628,7 @@ export default function SettingsScreen() {
                       onPress={() => handleConfirmImport(true)}
                       disabled={isImporting}
                     >
-                      <Text style={[styles.modalActionBtnSecondaryText, { color: '#F87171' }]}>
+                      <Text style={[styles.modalActionBtnSecondaryText, { color: '#DC2626' }]}>
                         Overwrite Existing Items ({importPreview.conflictItemsCount})
                       </Text>
                     </TouchableOpacity>
@@ -620,7 +639,7 @@ export default function SettingsScreen() {
                     onPress={() => setIsImportModalVisible(false)}
                     disabled={isImporting}
                   >
-                    <Text style={[styles.modalCancelText, { color: theme.textMuted }]}>Cancel</Text>
+                    <Text style={[styles.modalCancelText, { color: theme.textSecondary }]}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -637,26 +656,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 48,
+  },
+  brandCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    alignItems: 'center',
   },
   sectionHeading: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: 8,
-    marginTop: 14,
+    marginTop: 12,
     paddingHorizontal: 4,
   },
   card: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 12,
   },
   themeRow: {
@@ -669,7 +695,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     gap: 6,
   },
@@ -688,9 +714,16 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   labelTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   labelSubtitle: {
     fontSize: 12,
@@ -698,6 +731,7 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 14,
+    fontWeight: '500',
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -706,17 +740,17 @@ const styles = StyleSheet.create({
   timeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
   },
   timeBadgeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   timePickerContainer: {
     marginTop: 10,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
   },
   pickerHint: {
@@ -735,7 +769,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
   },
   chipText: {
@@ -752,13 +786,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     gap: 8,
   },
   portabilityBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   privacyBanner: {
     flexDirection: 'row',
@@ -774,16 +808,16 @@ const styles = StyleSheet.create({
   dangerBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
   },
   dangerBadgeText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -791,7 +825,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 420,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     padding: 20,
   },
@@ -819,7 +853,7 @@ const styles = StyleSheet.create({
   },
   diffStatCard: {
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     gap: 8,
     marginVertical: 4,
@@ -842,29 +876,29 @@ const styles = StyleSheet.create({
   },
   modalActionBtn: {
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalActionBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalActionBtnSecondary: {
     paddingVertical: 11,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
   modalActionBtnSecondaryText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalCancelBtn: {
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

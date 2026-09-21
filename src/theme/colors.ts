@@ -1,52 +1,32 @@
 export const brandColors = {
-  primary: '#3B82F6', // Electric Cobalt / Royal Blue
-  primaryDark: '#2563EB',
-  primaryLight: '#60A5FA',
-  primaryGlow: 'rgba(59, 130, 246, 0.25)',
+  primary: '#16A34A', // Emerald Green (Reference Primary)
+  primaryDark: '#15803D',
+  primaryLight: '#22C55E',
+  primarySubtle: 'rgba(22, 163, 74, 0.12)',
+  primaryGlow: 'rgba(22, 163, 74, 0.25)',
 
-  accent: '#06B6D4', // Vibrant Cyan / Aqua
-  accentLight: '#22D3EE',
-  accentDark: '#0891B2',
-  accentGlow: 'rgba(6, 182, 212, 0.25)',
+  secondary: '#10B981', // Mint (Reference Secondary)
+  secondaryLight: '#34D399',
+  secondaryDark: '#059669',
+  secondarySubtle: 'rgba(16, 185, 129, 0.12)',
 
-  success: '#10B981', // Neon Mint / Emerald
-  successLight: 'rgba(16, 185, 129, 0.16)',
+  success: '#10B981', // Mint / Emerald
+  successLight: 'rgba(16, 185, 129, 0.14)',
   successDark: '#059669',
 
-  warning: '#F59E0B', // Radiant Amber / Warm Gold
-  warningLight: 'rgba(245, 158, 11, 0.16)',
+  warning: '#F59E0B', // Radiant Amber
+  warningLight: 'rgba(245, 158, 11, 0.14)',
   warningDark: '#D97706',
 
-  danger: '#EF4444', // Vivid Coral / Neon Red
-  dangerLight: 'rgba(239, 68, 68, 0.16)',
+  danger: '#EF4444', // Error Red
+  dangerLight: 'rgba(239, 68, 68, 0.14)',
   dangerDark: '#DC2626',
 } as const;
 
 /**
- * GoTall-inspired signature ultra-sleek Dark Theme (Default)
- * Deep obsidian midnight background, elevated graphite-navy cards,
- * crisp neon accents, glowing pills, and high-contrast typography.
- */
-export const darkTheme = {
-  ...brandColors,
-  background: '#080B11', // Deep obsidian
-  surface: '#101622', // Elevated sleek card
-  surfaceSubtle: '#172032', // Secondary container / inputs
-  surfaceActive: '#1E2A42', // Active / pressed state
-  border: '#1E293B', // Subtle crisp border
-  borderSubtle: '#141D2C',
-  borderFocus: '#3B82F6', // Glowing blue border
-  text: '#FFFFFF', // High-contrast crisp white
-  textSecondary: '#94A3B8', // Sleek slate
-  textMuted: '#64748B', // Muted label
-  textInverse: '#080B11',
-  shadow: '#000000',
-  tabBarBackground: '#0C101A', // Dark bottom bar
-  tabBarBorder: '#172032',
-} as const;
-
-/**
- * Sleek Light Theme counterpart with matching vibrant accents
+ * Premium Minimal Light Theme (Default in reference: Apple Health / Notion style)
+ * Clean, fresh canvas #F8FAFC, crisp white cards #FFFFFF, refined borders #E2E8F0,
+ * and high-contrast typography #0F172A.
  */
 export const lightTheme = {
   ...brandColors,
@@ -56,14 +36,39 @@ export const lightTheme = {
   surfaceActive: '#E2E8F0',
   border: '#E2E8F0',
   borderSubtle: '#F1F5F9',
-  borderFocus: '#3B82F6',
+  borderFocus: '#16A34A',
   text: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#64748B',
+  textSecondary: '#64748B',
+  textMuted: '#94A3B8',
   textInverse: '#FFFFFF',
-  shadow: '#000000',
+  shadow: 'rgba(15, 23, 42, 0.06)',
   tabBarBackground: '#FFFFFF',
   tabBarBorder: '#E2E8F0',
 } as const;
 
-export type ThemeColors = Record<keyof typeof darkTheme, string>;
+/**
+ * Premium Minimal Dark Theme (Reference Dark Mode)
+ * Deep midnight slate #0B1215, elevated cards #141E24, subtle borders #1E2D38,
+ * crisp white text #F8FAFC, and vibrant Emerald & Mint accents.
+ */
+export const darkTheme = {
+  ...brandColors,
+  primary: '#22C55E', // Slightly brighter emerald for dark canvas
+  primarySubtle: 'rgba(34, 197, 94, 0.18)',
+  background: '#0B1215',
+  surface: '#141E24',
+  surfaceSubtle: '#1C2932',
+  surfaceActive: '#233440',
+  border: '#1E2D38',
+  borderSubtle: '#18242D',
+  borderFocus: '#22C55E',
+  text: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  textMuted: '#64748B',
+  textInverse: '#0B1215',
+  shadow: 'rgba(0, 0, 0, 0.4)',
+  tabBarBackground: '#10171D',
+  tabBarBorder: '#1A2731',
+} as const;
+
+export type ThemeColors = Record<keyof typeof lightTheme, string>;

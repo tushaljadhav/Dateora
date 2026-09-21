@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../src/theme';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
-import { ShieldCheck, BellRing, ArrowRight, Check } from 'lucide-react-native';
+import { DateoraLogo } from '../src/components/DateoraLogo';
+import { ShieldCheck, BellRing, ArrowRight, Check, Sparkles, Carrot, Milk, Pill } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const { theme } = useTheme();
@@ -11,7 +14,7 @@ export default function OnboardingScreen() {
   const setHasCompletedOnboarding = useSettingsStore((s) => s.setHasCompletedOnboarding);
   const setNotificationsEnabled = useSettingsStore((s) => s.setNotificationsEnabled);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [slide, setSlide] = useState<0 | 1>(0);
 
   const handleFinish = async (enableNotifications: boolean) => {
     await setNotificationsEnabled(enableNotifications);
@@ -21,79 +24,110 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
-        {/* Step indicator */}
-        <View style={styles.stepIndicatorRow}>
-          <View style={[styles.stepDot, { backgroundColor: theme.primary }]} />
-          <View
-            style={[
-              styles.stepDot,
-              { backgroundColor: step === 2 ? theme.primary : theme.surfaceSubtle },
-            ]}
-          />
+      <View style={styles.inner}>
+        {/* Top Branding */}
+        <View style={styles.topLogo}>
+          <DateoraLogo size={32} showText textColor={theme.text} />
         </View>
 
-        {step === 1 ? (
-          /* Step 1: What Dateora does & No login promise */
-          <View style={styles.stepContent}>
-            <View style={[styles.iconCircle, { backgroundColor: theme.surfaceSubtle }]}>
-              <ShieldCheck size={48} color={theme.primary} />
+        {slide === 0 ? (
+          /* Slide 1: Core Value Proposition */
+          <View style={styles.slideContent}>
+            {/* Visual Grocery Basket Card */}
+            <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.illustrationWrap}>
+                <View style={[styles.leafCircle, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+                  <DateoraLogo size={64} />
+                </View>
+                <View style={styles.groceryIconsRow}>
+                  <View style={[styles.miniBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                    <Carrot size={20} color="#F59E0B" />
+                  </View>
+                  <View style={[styles.miniBadge, { backgroundColor: 'rgba(22, 163, 74, 0.15)' }]}>
+                    <Milk size={20} color="#16A34A" />
+                  </View>
+                  <View style={[styles.miniBadge, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
+                    <Pill size={20} color="#06B6D4" />
+                  </View>
+                </View>
+              </View>
             </View>
 
-            <Text style={[styles.title, { color: theme.text }]}>Welcome to Dateora</Text>
-            <Text style={[styles.description, { color: theme.textSecondary }]}>
-              Stop throwing away money and using expired medicine. Track groceries, skincare, documents, and pantry goods in one offline-first place.
+            {/* Headline & Subtitle */}
+            <Text style={[styles.mainHeadline, { color: theme.text }]}>
+              Track Expiry Dates Effortlessly
+            </Text>
+            <Text style={[styles.mainSubtitle, { color: theme.textSecondary }]}>
+              Keep your food, medicines and household items fresh and safe. Never let good things go to waste.
             </Text>
 
-            <View style={[styles.promiseCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.promiseTitle, { color: theme.primary }]}>🔒 No Account Needed</Text>
-              <Text style={[styles.promiseText, { color: theme.textMuted }]}>
-                100% private. All your data stays on this device. No logins, no tracking, works in airplane mode.
-              </Text>
+            {/* Pagination Dots */}
+            <View style={styles.dotsRow}>
+              <View style={[styles.activeDot, { backgroundColor: theme.primary }]} />
+              <View style={[styles.inactiveDot, { backgroundColor: theme.border }]} />
             </View>
 
-            <View style={styles.bottomBar}>
+            {/* CTA Buttons */}
+            <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: theme.primary }]}
-                onPress={() => setStep(2)}
+                onPress={() => setSlide(1)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Text style={styles.primaryButtonText}>Get Started</Text>
                 <ArrowRight size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.skipButton}
+                onPress={() => handleFinish(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.skipText, { color: theme.textMuted }]}>Skip</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          /* Step 2: Contextual Notification Permission */
-          <View style={styles.stepContent}>
-            <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <BellRing size={48} color={theme.warningDark} />
+          /* Slide 2: Smart Alerts Context */
+          <View style={styles.slideContent}>
+            <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.illustrationWrap}>
+                <View style={[styles.leafCircle, { backgroundColor: 'rgba(245, 158, 11, 0.14)' }]}>
+                  <BellRing size={52} color="#F59E0B" />
+                </View>
+              </View>
             </View>
 
-            <Text style={[styles.title, { color: theme.text }]}>Stay Ahead of Expiries</Text>
-            <Text style={[styles.description, { color: theme.textSecondary }]}>
-              Dateora reminds you before things expire so you can use them in time.
+            <Text style={[styles.mainHeadline, { color: theme.text }]}>
+              Smart Offline Reminders
+            </Text>
+            <Text style={[styles.mainSubtitle, { color: theme.textSecondary }]}>
+              Get timely notifications before items expire. 100% private, offline-first, with zero cloud tracking.
             </Text>
 
-            <View style={[styles.permissionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.permissionContext, { color: theme.text }]}>
-                "Dateora reminds you before things expire — allow notifications?"
-              </Text>
-              <Text style={[styles.permissionFootnote, { color: theme.textMuted }]}>
-                You can change this or adjust your daily alert time anytime in Settings.
-              </Text>
+            {/* Pagination Dots */}
+            <View style={styles.dotsRow}>
+              <View style={[styles.inactiveDot, { backgroundColor: theme.border }]} />
+              <View style={[styles.activeDot, { backgroundColor: theme.primary }]} />
             </View>
 
-            <View style={styles.bottomBar}>
+            {/* CTA Buttons */}
+            <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: theme.primary }]}
                 onPress={() => handleFinish(true)}
+                activeOpacity={0.85}
               >
                 <Text style={styles.primaryButtonText}>Enable Reminders</Text>
                 <Check size={18} color="#FFFFFF" />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.skipButton} onPress={() => handleFinish(false)}>
-                <Text style={[styles.skipButtonText, { color: theme.textMuted }]}>Not now, maybe later</Text>
+              <TouchableOpacity
+                style={styles.skipButton}
+                onPress={() => handleFinish(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.skipText, { color: theme.textMuted }]}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -107,104 +141,117 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  inner: {
     flex: 1,
     padding: 24,
     justifyContent: 'space-between',
   },
-  stepIndicatorRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
+  topLogo: {
+    alignItems: 'center',
+    marginTop: 12,
   },
-  stepDot: {
-    width: 24,
-    height: 4,
-    borderRadius: 2,
-  },
-  stepContent: {
+  slideContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingVertical: 20,
   },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  heroCard: {
+    width: '100%',
+    aspectRatio: 1.2,
+    borderRadius: 24,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  title: {
+  illustrationWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leafCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  groceryIconsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  miniBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mainHeadline: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 12,
+    letterSpacing: -0.4,
+    marginBottom: 10,
+    paddingHorizontal: 8,
   },
-  description: {
+  mainSubtitle: {
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
+    paddingHorizontal: 16,
     marginBottom: 24,
   },
-  promiseCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 32,
+  },
+  activeDot: {
+    width: 24,
+    height: 8,
+    borderRadius: 4,
+  },
+  inactiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  buttonGroup: {
     width: '100%',
-  },
-  promiseTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  promiseText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  permissionCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 18,
-    width: '100%',
-  },
-  permissionContext: {
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 22,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  permissionFootnote: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  bottomBar: {
-    width: '100%',
-    marginTop: 32,
     gap: 12,
   },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
-    borderRadius: 8,
+    height: 54,
+    borderRadius: 14,
     gap: 8,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   skipButton: {
     alignItems: 'center',
     paddingVertical: 10,
   },
-  skipButtonText: {
+  skipText: {
     fontSize: 14,
+    fontWeight: '600',
   },
 });

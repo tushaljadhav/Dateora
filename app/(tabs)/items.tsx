@@ -1,13 +1,45 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  RefreshControl,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { useFiltersStore } from '../../src/stores/useFiltersStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { evaluateItemStatus, formatDisplayDate } from '../../src/services/statusCalculator';
-import { Item, ItemSortOption, ItemStatusFilter, PRESET_CATEGORIES } from '../../src/types/item';
-import { Search, X, ChevronRight, Plus, ArrowUpDown, Filter } from 'lucide-react-native';
+import { Item, ItemSortOption, ItemStatusFilter } from '../../src/types/item';
+import {
+  Search,
+  X,
+  ChevronRight,
+  Plus,
+  ArrowUpDown,
+  Milk,
+  Pill,
+  Sparkle,
+  Home,
+  Coffee,
+  HelpCircle,
+  Package,
+} from 'lucide-react-native';
+
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'food', label: 'Food' },
+  { id: 'medicine', label: 'Medicine' },
+  { id: 'cosmetics', label: 'Cosmetics' },
+  { id: 'household', label: 'Household' },
+  { id: 'beverages', label: 'Beverages' },
+  { id: 'others', label: 'Others' },
+];
 
 export default function ItemsScreen() {
   const { theme } = useTheme();
@@ -48,10 +80,13 @@ export default function ItemsScreen() {
 
     // Category filter
     if (selectedCategories.length > 0) {
-      result = result.filter((item) => selectedCategories.includes(item.category.toLowerCase()));
+      result = result.filter((item) => {
+        const cat = item.category.toLowerCase();
+        return selectedCategories.some((sc) => cat.includes(sc.toLowerCase()) || sc.toLowerCase().includes(cat));
+      });
     }
 
-    // Search query (case-insensitive substring)
+    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -96,62 +131,108 @@ export default function ItemsScreen() {
     }
   };
 
-  // Specific empty state text per active filter
-  const getEmptyStateMessage = () => {
-    if (searchQuery) return `No items matching "${searchQuery}"`;
-    if (statusFilter === 'expired') return 'No expired items — nice! 🎉';
-    if (statusFilter === 'expiring_soon') return 'No items expiring soon. You are all set!';
-    if (statusFilter === 'safe') return 'No safe items currently recorded.';
-    if (selectedCategories.length > 0) return 'No items in selected category filters.';
-    return 'No items yet. Tap + to add your first item.';
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'groceries':
+      case 'food':
+        return <Milk size={20} color={theme.primary} />;
+      case 'medicine':
+        return <Pill size={20} color="#06B6D4" />;
+      case 'skincare':
+      case 'cosmetics':
+        return <Sparkle size={20} color="#EC4899" />;
+      case 'household':
+        return <Home size={20} color="#8B5CF6" />;
+      case 'beverages':
+        return <Coffee size={20} color="#F59E0B" />;
+      default:
+        return <Package size={20} color={theme.primary} />;
+    }
   };
 
   const renderItem = ({ item }: { item: Item }) => {
     const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
+    const isExpired = evaluation.status === 'expired';
+    const isToday = evaluation.daysLeft === 0;
+
+    let pillBg = 'rgba(245, 158, 11, 0.15)';
+    let pillText = '#D97706';
+    let pillLabel = `${evaluation.daysLeft} days`;
+
+    if (isExpired) {
+      pillBg = 'rgba(239, 68, 68, 0.15)';
+      pillText = '#DC2626';
+      pillLabel = 'Expired';
+    } else if (isToday) {
+      pillBg = 'rgba(239, 68, 68, 0.15)';
+      pillText = '#DC2626';
+      pillLabel = 'Today';
+    } else if (evaluation.daysLeft === 1) {
+      pillBg = 'rgba(245, 158, 11, 0.15)';
+      pillText = '#D97706';
+      pillLabel = '1 day';
+    } else if (evaluation.daysLeft > 5) {
+      pillBg = 'rgba(22, 163, 74, 0.15)';
+      pillText = '#15803D';
+    }
 
     return (
       <TouchableOpacity
-        style={[styles.itemRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
         onPress={() => router.push(`/item/${item.id}`)}
         activeOpacity={0.7}
       >
-        <View style={styles.itemMain}>
+        <View style={[styles.itemIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
+          {getCategoryIcon(item.category)}
+        </View>
+
+        <View style={styles.itemInfo}>
           <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={[styles.itemSubtext, { color: theme.textMuted }]}>
-            {formatDisplayDate(item.expiryDate)} • {item.category}
-            {item.location ? ` • ${item.location}` : ''}
+          <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
+            {formatDisplayDate(item.expiryDate)} {item.location ? `• ${item.location}` : ''}
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: evaluation.badgeBg, borderColor: evaluation.borderColor },
-          ]}
-        >
-          <Text style={[styles.statusBadgeText, { color: evaluation.textColor }]}>{evaluation.label}</Text>
+        <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
+          <Text style={[styles.statusPillText, { color: pillText }]}>{pillLabel}</Text>
         </View>
-
-        <ChevronRight size={16} color={theme.textMuted} />
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Search Bar & Sort Toggle */}
+      {/* Top Header */}
+      <View style={styles.topHeader}>
+        <View style={styles.titleRow}>
+          <Text style={[styles.screenTitle, { color: theme.text }]}>All Items</Text>
+          <View style={[styles.countBadge, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+            <Text style={[styles.countBadgeText, { color: theme.primary }]}>{filteredItems.length}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.headerAddBtn, { backgroundColor: theme.primary }]}
+          onPress={() => router.push('/add-item')}
+          activeOpacity={0.8}
+        >
+          <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
+          <Text style={styles.headerAddBtnText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Input Bar */}
       <View style={styles.searchRow}>
-        <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Search size={18} color={theme.textMuted} />
+        <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Search size={18} color={theme.textMuted} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search items, categories..."
+            placeholder="Search items, categories, locations..."
             placeholderTextColor={theme.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            clearButtonMode="while-editing"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -161,104 +242,82 @@ export default function ItemsScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.sortButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          style={[styles.sortChip, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={cycleSort}
+          activeOpacity={0.7}
         >
-          <ArrowUpDown size={14} color={theme.primary} />
-          <Text style={[styles.sortButtonText, { color: theme.text }]}>{getSortLabel()}</Text>
+          <ArrowUpDown size={15} color={theme.primary} />
+          <Text style={[styles.sortChipText, { color: theme.text }]}>{getSortLabel()}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Filter Chips: All / Expiring Soon / Expired / Safe */}
-      <View style={styles.chipsScrollContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[
-            { id: 'all', label: 'All' },
-            { id: 'expiring_soon', label: 'Expiring Soon' },
-            { id: 'expired', label: 'Expired' },
-            { id: 'safe', label: 'Safe' },
-          ] as const}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.chipsRow}
-          renderItem={({ item }) => {
-            const isSelected = statusFilter === item.id;
+      {/* Category Pills Horizontal Scroll */}
+      <View style={styles.categoriesContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+          {CATEGORIES.map((cat) => {
+            const isAll = cat.id === 'all';
+            const isSelected = isAll ? selectedCategories.length === 0 : selectedCategories.includes(cat.id);
+
             return (
               <TouchableOpacity
+                key={cat.id}
                 style={[
-                  styles.filterChip,
+                  styles.categoryPill,
                   isSelected
                     ? { backgroundColor: theme.primary, borderColor: theme.primary }
                     : { backgroundColor: theme.surface, borderColor: theme.border },
                 ]}
-                onPress={() => setStatusFilter(item.id)}
+                onPress={() => {
+                  if (isAll) {
+                    CATEGORIES.forEach((c) => {
+                      if (c.id !== 'all' && selectedCategories.includes(c.id)) {
+                        toggleCategory(c.id);
+                      }
+                    });
+                  } else {
+                    toggleCategory(cat.id);
+                  }
+                }}
+                activeOpacity={0.7}
               >
                 <Text
                   style={[
-                    styles.filterChipText,
-                    isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.textSecondary },
+                    styles.categoryPillText,
+                    { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                    isSelected && { fontWeight: '700' },
                   ]}
                 >
-                  {item.label}
+                  {cat.label}
                 </Text>
               </TouchableOpacity>
             );
-          }}
-        />
-
-        {/* Category Multi-Select Row (PRD §4.3) */}
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={PRESET_CATEGORIES}
-          keyExtractor={(c) => c.id}
-          contentContainerStyle={[styles.chipsRow, { marginTop: 6 }]}
-          renderItem={({ item: cat }) => {
-            const isSelected = selectedCategories.includes(cat.name.toLowerCase());
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.categoryFilterChip,
-                  isSelected
-                    ? { backgroundColor: theme.primaryLight, borderColor: theme.primary }
-                    : { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
-                onPress={() => toggleCategory(cat.name.toLowerCase())}
-              >
-                <Text
-                  style={[
-                    styles.categoryFilterChipText,
-                    isSelected ? { color: '#FFFFFF', fontWeight: '600' } : { color: theme.textMuted },
-                  ]}
-                >
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
+          })}
+        </ScrollView>
       </View>
 
-      {/* Items List */}
+      {/* Items FlatList */}
       <FlatList
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadItems} tintColor={theme.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={loadItems}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
         ListEmptyComponent={
-          <View style={[styles.emptyContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{getEmptyStateMessage()}</Text>
-            {items.length === 0 && (
-              <TouchableOpacity
-                style={[styles.addFirstBtn, { backgroundColor: theme.primary }]}
-                onPress={() => router.push('/add-item')}
-              >
-                <Plus size={16} color="#FFFFFF" />
-                <Text style={styles.addFirstText}>Add Item</Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
+              <Package size={36} color={theme.textMuted} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No items found</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
+              {searchQuery ? 'Try searching with another keyword' : 'Add your first item to start tracking'}
+            </Text>
           </View>
         }
       />
@@ -270,126 +329,160 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
+  countBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  headerAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 4,
+  },
+  headerAddBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   searchRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 8,
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 12,
   },
-  searchBox: {
+  searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 42,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 8,
+    paddingHorizontal: 14,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     height: '100%',
   },
-  sortButton: {
+  sortChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 42,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 6,
+    height: 44,
   },
-  sortButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  chipsScrollContainer: {
-    marginBottom: 8,
-  },
-  chipsRow: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  filterChipText: {
+  sortChipText: {
     fontSize: 13,
+    fontWeight: '600',
   },
-  categoryFilterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
+  categoriesContainer: {
+    marginBottom: 12,
   },
-  categoryFilterChipText: {
-    fontSize: 12,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
+  categoryScroll: {
+    paddingHorizontal: 20,
     gap: 8,
   },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  itemMain: {
-    flex: 1,
-    marginRight: 8,
-  },
-  itemName: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  itemSubtext: {
-    fontSize: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  categoryPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 9999,
     borderWidth: 1,
-    marginRight: 6,
   },
-  statusBadgeText: {
-    fontSize: 11,
+  categoryPillText: {
+    fontSize: 13,
     fontWeight: '600',
   },
-  emptyContainer: {
-    padding: 32,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    marginTop: 20,
-    marginHorizontal: 16,
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 10,
   },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  addFirstBtn: {
+  itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
   },
-  addFirstText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+  itemIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  itemSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
