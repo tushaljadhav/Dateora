@@ -1,30 +1,38 @@
 export const brandColors = {
-  primary: '#16A34A', // Emerald Green (Reference Primary)
-  primaryDark: '#15803D',
-  primaryLight: '#22C55E',
-  primarySubtle: 'rgba(22, 163, 74, 0.12)',
-  primaryGlow: 'rgba(22, 163, 74, 0.25)',
+  primary: '#16A34A', // Emerald Green (Reference Primary: Green 600)
+  primaryDark: '#15803D', // Green 700
+  primaryLight: '#22C55E', // Green 500
+  primarySubtle: 'rgba(22, 163, 74, 0.10)',
+  primaryGlow: 'rgba(22, 163, 74, 0.20)',
 
-  secondary: '#10B981', // Mint (Reference Secondary)
+  secondary: '#10B981', // Mint (Reference Secondary: Green 500)
   secondaryLight: '#34D399',
   secondaryDark: '#059669',
   secondarySubtle: 'rgba(16, 185, 129, 0.12)',
 
-  success: '#10B981', // Mint / Emerald
-  successLight: 'rgba(16, 185, 129, 0.14)',
-  successDark: '#059669',
+  accent: '#22C55E', // Green 400
+  lightGreen: '#DCFCE7', // Green 100
+  veryLightGreen: '#F0FDF4', // Green 50
+
+  success: '#16A34A',
+  successLight: '#DCFCE7',
+  successDark: '#15803D',
 
   warning: '#F59E0B', // Radiant Amber
-  warningLight: 'rgba(245, 158, 11, 0.14)',
+  warningLight: '#FEF3C7',
   warningDark: '#D97706',
 
   danger: '#EF4444', // Error Red
-  dangerLight: 'rgba(239, 68, 68, 0.14)',
+  dangerLight: '#FEE2E2',
   dangerDark: '#DC2626',
+
+  info: '#0284C7', // Ocean Blue
+  infoLight: '#E0F2FE',
+  infoDark: '#0369A1',
 } as const;
 
 /**
- * Premium Minimal Light Theme (Default in reference: Apple Health / Notion style)
+ * Premium Minimal Light Theme (Primary reference: Apple Health / Notion / Dateora case-study)
  * Clean, fresh canvas #F8FAFC, crisp white cards #FFFFFF, refined borders #E2E8F0,
  * and high-contrast typography #0F172A.
  */
@@ -38,10 +46,10 @@ export const lightTheme = {
   borderSubtle: '#F1F5F9',
   borderFocus: '#16A34A',
   text: '#0F172A',
-  textSecondary: '#64748B',
+  textSecondary: '#475569',
   textMuted: '#94A3B8',
   textInverse: '#FFFFFF',
-  shadow: 'rgba(15, 23, 42, 0.06)',
+  shadow: 'rgba(15, 23, 42, 0.04)',
   tabBarBackground: '#FFFFFF',
   tabBarBorder: '#E2E8F0',
 } as const;
@@ -54,11 +62,13 @@ export const lightTheme = {
 export const darkTheme = {
   ...brandColors,
   primary: '#22C55E', // Slightly brighter emerald for dark canvas
-  primarySubtle: 'rgba(34, 197, 94, 0.18)',
+  primarySubtle: 'rgba(34, 197, 94, 0.16)',
+  lightGreen: 'rgba(34, 197, 94, 0.20)',
+  veryLightGreen: 'rgba(34, 197, 94, 0.10)',
   background: '#0B1215',
   surface: '#141E24',
   surfaceSubtle: '#1C2932',
-  surfaceActive: '#233440',
+  surfaceActive: '#243743',
   border: '#1E2D38',
   borderSubtle: '#18242D',
   borderFocus: '#22C55E',

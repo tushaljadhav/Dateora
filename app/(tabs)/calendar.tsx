@@ -6,6 +6,7 @@ import { useItemsStore } from '../../src/stores/useItemsStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { evaluateItemStatus, formatDisplayDate } from '../../src/services/statusCalculator';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Milk, Pill, Sparkle, Home, Coffee } from 'lucide-react-native';
+import { StatusPill } from '../../src/components/StatusPill';
 
 export default function CalendarScreen() {
   const { theme } = useTheme();
@@ -215,16 +216,10 @@ export default function CalendarScreen() {
                       </Text>
                     </View>
 
-                    <View
-                      style={[
-                        styles.sheetStatusPill,
-                        { backgroundColor: evaluation.badgeBg },
-                      ]}
-                    >
-                      <Text style={[styles.sheetStatusPillText, { color: evaluation.textColor }]}>
-                        {evaluation.relativeText}
-                      </Text>
-                    </View>
+                    <StatusPill
+                      daysLeft={evaluation.daysLeft}
+                      status={evaluation.status}
+                    />
                   </TouchableOpacity>
                 );
               })}
@@ -241,7 +236,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   headerCard: {

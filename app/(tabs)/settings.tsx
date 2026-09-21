@@ -306,7 +306,7 @@ export default function SettingsScreen() {
               <View style={[styles.iconBox, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
                 <Bell size={18} color={theme.primary} />
               </View>
-              <View>
+              <View style={styles.rowTextCol}>
                 <Text style={[styles.labelTitle, { color: theme.text }]}>Enable Reminders</Text>
                 <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                   Schedule offline alerts on this device
@@ -328,7 +328,7 @@ export default function SettingsScreen() {
               <View style={[styles.iconBox, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
                 <Clock size={18} color={theme.primary} />
               </View>
-              <View>
+              <View style={styles.rowTextCol}>
                 <Text style={[styles.labelTitle, { color: theme.text }]}>Daily Alert Time</Text>
                 <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                   When morning notifications arrive
@@ -388,8 +388,8 @@ export default function SettingsScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* Expiring Soon Window */}
-          <View style={styles.rowBetween}>
-            <View>
+          <View style={styles.thresholdContainer}>
+            <View style={styles.thresholdTextCol}>
               <Text style={[styles.labelTitle, { color: theme.text }]}>Expiring Soon Threshold</Text>
               <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
                 Items turn amber when within this window
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 48,
   },
   brandCard: {
@@ -679,6 +679,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
+    overflow: 'hidden',
   },
   cardTitle: {
     fontSize: 15,
@@ -691,13 +692,15 @@ const styles = StyleSheet.create({
   },
   themeOption: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 4,
     borderRadius: 12,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
   },
   themeOptionText: {
     fontSize: 13,
@@ -712,6 +715,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    paddingRight: 8,
+  },
+  rowTextCol: {
     flex: 1,
   },
   iconBox: {
@@ -742,6 +749,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
+    flexShrink: 0,
   },
   timeBadgeText: {
     fontSize: 14,
@@ -757,9 +765,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 8,
   },
+  thresholdContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  thresholdTextCol: {
+    flex: 1,
+    minWidth: 160,
+    paddingRight: 6,
+  },
   chipsRow: {
     flexDirection: 'row',
     gap: 6,
+    flexShrink: 0,
   },
   chipsWrap: {
     flexDirection: 'row',
@@ -767,9 +788,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
   },
   chipText: {

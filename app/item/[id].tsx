@@ -34,10 +34,11 @@ import {
   HelpCircle,
   Archive,
 } from 'lucide-react-native';
+import { StatusPill } from '../../src/components/StatusPill';
 
 export default function ItemDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
 
   const items = useItemsStore((s) => s.items);
@@ -171,21 +172,15 @@ export default function ItemDetailsScreen() {
           <View style={styles.heroTitleRow}>
             <View style={styles.heroTextCol}>
               <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
-              <View style={[styles.categoryTag, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+              <View style={[styles.categoryTag, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7' }]}>
                 <Text style={[styles.categoryTagText, { color: theme.primary }]}>@ {item.category}</Text>
               </View>
             </View>
 
-            <View
-              style={[
-                styles.statusPill,
-                { backgroundColor: evaluation.badgeBg, borderColor: evaluation.borderColor },
-              ]}
-            >
-              <Text style={[styles.statusPillText, { color: evaluation.textColor }]}>
-                {evaluation.relativeText}
-              </Text>
-            </View>
+            <StatusPill
+              daysLeft={evaluation.daysLeft}
+              status={evaluation.status}
+            />
           </View>
         </View>
 

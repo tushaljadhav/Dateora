@@ -14,6 +14,7 @@ import { useItemsStore } from '../../src/stores/useItemsStore';
 import { Item, ItemLifecycleStatus } from '../../src/types/item';
 import { formatDisplayDate } from '../../src/services/statusCalculator';
 import { RotateCcw, CheckCircle2, Trash2, Archive, XCircle } from 'lucide-react-native';
+import { EmptyState } from '../../src/components/EmptyState';
 
 type HistoryFilterTab = 'all' | 'used' | 'finished' | 'disposed';
 
@@ -205,17 +206,15 @@ export default function HistoryScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
-              <Archive size={36} color={theme.textMuted} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No history items</Text>
-            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              {activeTab === 'all'
+          <EmptyState
+            title="No history items"
+            subtitle={
+              activeTab === 'all'
                 ? 'Items marked as used, finished, or disposed will appear here.'
-                : `No items marked as ${activeTab} yet.`}
-            </Text>
-          </View>
+                : `No items marked as ${activeTab} yet.`
+            }
+            icon={<Archive size={32} color={theme.primary} />}
+          />
         }
       />
     </View>
@@ -241,7 +240,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
     gap: 12,
   },

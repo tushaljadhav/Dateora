@@ -249,9 +249,39 @@ export default function AddItemScreen() {
             <View style={styles.labelRowBetween}>
               <Text style={[styles.inputLabel, { color: theme.text }]}>Expiry Date *</Text>
               {evaluation && (
-                <Text style={[styles.evaluationPill, { color: evaluation.textColor }]}>
-                  {evaluation.label}
-                </Text>
+                <View
+                  style={[
+                    styles.evaluationPillBox,
+                    {
+                      backgroundColor:
+                        evaluation.status === 'expired'
+                          ? '#FEE2E2'
+                          : evaluation.status === 'expiring_soon'
+                          ? '#FEF3C7'
+                          : '#DCFCE7',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.evaluationPill,
+                      {
+                        color:
+                          evaluation.status === 'expired'
+                            ? '#DC2626'
+                            : evaluation.status === 'expiring_soon'
+                            ? '#D97706'
+                            : '#15803D',
+                      },
+                    ]}
+                  >
+                    {evaluation.status === 'expired'
+                      ? 'Expired'
+                      : evaluation.daysLeft === 0
+                      ? 'Expires today'
+                      : `Safe — ${evaluation.daysLeft} days remaining`}
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -266,24 +296,43 @@ export default function AddItemScreen() {
               onChangeText={setExpiryDate}
             />
 
-            {/* Quick Presets */}
+            {/* Quick Presets matching reference board */}
             <View style={styles.quickChipsWrap}>
               {[
-                { label: '+3 Days', days: 3 },
-                { label: '+1 Week', days: 7 },
-                { label: '+1 Month', days: 30 },
-                { label: '+6 Months', days: 180 },
-                { label: '+1 Year', days: 365 },
-              ].map((preset) => (
-                <TouchableOpacity
-                  key={preset.label}
-                  style={[styles.quickChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
-                  onPress={() => setQuickDate(preset.days)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.quickChipText, { color: theme.textSecondary }]}>{preset.label}</Text>
-                </TouchableOpacity>
-              ))}
+                { label: 'Today', days: 0 },
+                { label: '+3 days', days: 3 },
+                { label: '+7 days', days: 7 },
+                { label: '+30 days', days: 30 },
+              ].map((preset) => {
+                const target = new Date();
+                target.setDate(target.getDate() + preset.days);
+                const targetStr = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+                const isSelected = expiryDate === targetStr;
+
+                return (
+                  <TouchableOpacity
+                    key={preset.label}
+                    style={[
+                      styles.quickChip,
+                      isSelected
+                        ? { backgroundColor: theme.primary, borderColor: theme.primary }
+                        : { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                    ]}
+                    onPress={() => setQuickDate(preset.days)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                        isSelected && { fontWeight: '700' },
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -534,8 +583,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  evaluationPillBox: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
   evaluationPill: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   textInput: {

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
@@ -31,9 +32,10 @@ import {
   HelpCircle,
 } from 'lucide-react-native';
 import { DateoraLogo } from '../../src/components/DateoraLogo';
+import { StatusPill } from '../../src/components/StatusPill';
 
 export default function HomeScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const router = useRouter();
 
   const items = useItemsStore((s) => s.items);
@@ -126,9 +128,13 @@ export default function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Header Bar */}
+        {/* Top Header Bar with Dateora Emblem */}
         <View style={styles.topHeader}>
           <View style={styles.headerLeft}>
+            <View style={styles.brandingRow}>
+              <DateoraLogo size={24} />
+              <Text style={[styles.brandNameMini, { color: theme.primary }]}>Dateora</Text>
+            </View>
             <View style={styles.greetingRow}>
               <Text style={[styles.greetingText, { color: theme.text }]}>{greeting}, Tushal</Text>
               <Text style={styles.waveEmoji}>👋</Text>
@@ -162,7 +168,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Metric Cards Grid (2 Column Clean Cards) */}
+        {/* Metric Cards Grid (2 Column Clean Cards matching Reference Board) */}
         <View style={styles.metricsRow}>
           {/* Expiring Today */}
           <TouchableOpacity
@@ -171,7 +177,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.metricHeaderRow}>
-              <View style={[styles.metricIconCircle, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
+              <View style={[styles.metricIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2' }]}>
                 <Clock size={18} color="#EF4444" />
               </View>
               <Text style={[styles.metricNumber, { color: '#EF4444' }]}>{expiringTodayCount}</Text>
@@ -186,16 +192,16 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.metricHeaderRow}>
-              <View style={[styles.metricIconCircle, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
-                <Package size={18} color="#16A34A" />
+              <View style={[styles.metricIconCircle, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#DCFCE7' }]}>
+                <Package size={18} color={theme.primary} />
               </View>
-              <Text style={[styles.metricNumber, { color: theme.text }]}>{activeCount}</Text>
+              <Text style={[styles.metricNumber, { color: theme.primary }]}>{activeCount}</Text>
             </View>
             <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Active Items</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Quick Add Item Prominent Button */}
+        {/* Quick Add Item Prominent Green Button */}
         <TouchableOpacity
           style={[styles.quickAddButton, { backgroundColor: theme.primary }]}
           onPress={() => router.push('/add-item')}
@@ -216,9 +222,11 @@ export default function HomeScreen() {
         {/* Items List or Fresh Empty State */}
         {expiringSoonList.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: 'rgba(22, 163, 74, 0.1)' }]}>
-              <DateoraLogo size={36} />
-            </View>
+            <Image
+              source={require('../../assets/illustrations/shield_hero.png')}
+              style={styles.emptyIllustration}
+              resizeMode="contain"
+            />
             <Text style={[styles.emptyTitle, { color: theme.text }]}>All items are fresh!</Text>
             <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
               Nothing is expiring soon. Track new groceries or household items to stay notified.
@@ -229,27 +237,6 @@ export default function HomeScreen() {
             {expiringSoonList.slice(0, 5).map(({ item, evaluation }) => {
               const isExpired = evaluation.status === 'expired';
               const isToday = evaluation.daysLeft === 0;
-
-              let pillBg = 'rgba(245, 158, 11, 0.15)';
-              let pillText = '#D97706';
-              let pillLabel = `${evaluation.daysLeft} days`;
-
-              if (isExpired) {
-                pillBg = 'rgba(239, 68, 68, 0.15)';
-                pillText = '#DC2626';
-                pillLabel = 'Expired';
-              } else if (isToday) {
-                pillBg = 'rgba(239, 68, 68, 0.15)';
-                pillText = '#DC2626';
-                pillLabel = 'Today';
-              } else if (evaluation.daysLeft === 1) {
-                pillBg = 'rgba(245, 158, 11, 0.15)';
-                pillText = '#D97706';
-                pillLabel = '1 day';
-              } else if (evaluation.daysLeft > 5) {
-                pillBg = 'rgba(22, 163, 74, 0.15)';
-                pillText = '#15803D';
-              }
 
               return (
                 <TouchableOpacity
@@ -271,9 +258,10 @@ export default function HomeScreen() {
                     </Text>
                   </View>
 
-                  <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
-                    <Text style={[styles.statusPillText, { color: pillText }]}>{pillLabel}</Text>
-                  </View>
+                  <StatusPill
+                    daysLeft={evaluation.daysLeft}
+                    status={evaluation.status}
+                  />
                 </TouchableOpacity>
               );
             })}
@@ -289,18 +277,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
     marginTop: 4,
   },
   headerLeft: {
     flex: 1,
+  },
+  brandingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  brandNameMini: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   greetingRow: {
     flexDirection: 'row',
@@ -363,7 +362,8 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 1,
-    padding: 16,
+    padding: 14,
+    minWidth: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
+    paddingRight: 8,
   },
   itemName: {
     fontSize: 16,
@@ -462,9 +463,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 9999,
+    flexShrink: 0,
   },
   statusPillText: {
     fontSize: 12,
@@ -477,6 +479,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
+  },
+  emptyIllustration: {
+    width: 96,
+    height: 96,
+    marginBottom: 12,
   },
   emptyIconCircle: {
     width: 64,

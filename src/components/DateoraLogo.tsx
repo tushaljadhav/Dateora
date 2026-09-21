@@ -62,7 +62,7 @@ export const DateoraLogo: React.FC<DateoraLogoProps> = ({
           <Text style={[styles.brandTitle, { color: textColor, fontSize: size * 0.65 }]}>Dateora</Text>
           {tagline && (
             <Text style={[styles.taglineText, { color: textColor, opacity: 0.7 }]}>
-              Never let good things go to waste
+              Track • Remind • Stay Fresh
             </Text>
           )}
         </View>

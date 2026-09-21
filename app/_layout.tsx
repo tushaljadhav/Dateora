@@ -1,17 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, Text, StyleSheet, AppState } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, AppState, Platform } from 'react-native';
 import { ThemeProvider, useTheme } from '../src/theme';
 import { initializeDatabase } from '../src/db/client';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
 import { useItemsStore } from '../src/stores/useItemsStore';
 
+// Web viewport constraint fix: Ensure body and #root never exceed 100vw
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const styleId = 'dateora-web-viewport-fix';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      html, body {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      #root {
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow-x: hidden !important;
+      }
+      * {
+        box-sizing: border-box;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
 function RootNavigation() {
   const { theme, isDark } = useTheme();
 
   return (
-    <>
+    <View style={[styles.rootContainer, { backgroundColor: theme.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -49,7 +79,7 @@ function RootNavigation() {
           }}
         />
       </Stack>
-    </>
+    </View>
   );
 }
 
@@ -112,6 +142,14 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 480 : undefined,
+    minWidth: 0,
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
   centerContainer: {
     flex: 1,
     alignItems: 'center',

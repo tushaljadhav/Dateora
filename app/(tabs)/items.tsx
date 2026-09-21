@@ -30,6 +30,8 @@ import {
   HelpCircle,
   Package,
 } from 'lucide-react-native';
+import { StatusPill } from '../../src/components/StatusPill';
+import { EmptyState } from '../../src/components/EmptyState';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -152,29 +154,6 @@ export default function ItemsScreen() {
 
   const renderItem = ({ item }: { item: Item }) => {
     const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
-    const isExpired = evaluation.status === 'expired';
-    const isToday = evaluation.daysLeft === 0;
-
-    let pillBg = 'rgba(245, 158, 11, 0.15)';
-    let pillText = '#D97706';
-    let pillLabel = `${evaluation.daysLeft} days`;
-
-    if (isExpired) {
-      pillBg = 'rgba(239, 68, 68, 0.15)';
-      pillText = '#DC2626';
-      pillLabel = 'Expired';
-    } else if (isToday) {
-      pillBg = 'rgba(239, 68, 68, 0.15)';
-      pillText = '#DC2626';
-      pillLabel = 'Today';
-    } else if (evaluation.daysLeft === 1) {
-      pillBg = 'rgba(245, 158, 11, 0.15)';
-      pillText = '#D97706';
-      pillLabel = '1 day';
-    } else if (evaluation.daysLeft > 5) {
-      pillBg = 'rgba(22, 163, 74, 0.15)';
-      pillText = '#15803D';
-    }
 
     return (
       <TouchableOpacity
@@ -195,9 +174,10 @@ export default function ItemsScreen() {
           </Text>
         </View>
 
-        <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
-          <Text style={[styles.statusPillText, { color: pillText }]}>{pillLabel}</Text>
-        </View>
+        <StatusPill
+          daysLeft={evaluation.daysLeft}
+          status={evaluation.status}
+        />
       </TouchableOpacity>
     );
   };
@@ -310,15 +290,16 @@ export default function ItemsScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: theme.surfaceSubtle }]}>
-              <Package size={36} color={theme.textMuted} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No items found</Text>
-            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              {searchQuery ? 'Try searching with another keyword' : 'Add your first item to start tracking'}
-            </Text>
-          </View>
+          <EmptyState
+            title={searchQuery ? 'No matching items' : 'No items yet'}
+            subtitle={
+              searchQuery
+                ? 'Try searching with another keyword or clearing the filter'
+                : 'Start tracking your items to stay ahead of expiry dates.'
+            }
+            actionLabel={searchQuery ? undefined : '+ Add Item'}
+            onAction={() => router.push('/add-item')}
+          />
         }
       />
     </View>
@@ -333,7 +314,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
   },
@@ -371,7 +352,7 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 10,
     marginBottom: 12,
   },
@@ -409,7 +390,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 8,
   },
   categoryPill: {
@@ -423,7 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 40,
     gap: 10,
   },
@@ -444,6 +425,7 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
+    paddingRight: 8,
   },
   itemName: {
     fontSize: 16,
@@ -455,9 +437,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 9999,
+    flexShrink: 0,
   },
   statusPillText: {
     fontSize: 12,
