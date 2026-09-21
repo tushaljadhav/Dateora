@@ -9,6 +9,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../src/theme';
@@ -20,18 +22,16 @@ import {
   Barcode,
   Camera,
   ChevronRight,
-  Milk,
-  Pill,
-  Sparkle,
-  Home,
-  Coffee,
-  HelpCircle,
   Calendar,
   AlertCircle,
   Plus,
   Check,
+  X,
+  Sparkles,
+  Search,
 } from 'lucide-react-native';
 import { CATEGORY_VISUALS, DEFAULT_CATEGORY_VISUAL } from '../src/theme/categoryVisuals';
+import { lookupBarcode, SAMPLE_BARCODES } from '../src/services/barcodeService';
 
 const CATEGORY_TILES = [
   CATEGORY_VISUALS.groceries,
@@ -91,13 +91,72 @@ export default function AddItemScreen() {
     }
   };
 
+  const [isBarcodeModalVisible, setIsBarcodeModalVisible] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [isLookingUpBarcode, setIsLookingUpBarcode] = useState(false);
+
+  const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+
   const handleScannerPress = (type: 'barcode' | 'camera') => {
-    const label = type === 'barcode' ? 'Barcode scanner' : 'Photo recognition';
-    if (Platform.OS === 'web') {
-      alert(`${label} is configured for the Android mobile release. You can enter the details manually below.`);
+    if (type === 'barcode') {
+      setIsBarcodeModalVisible(true);
     } else {
-      Alert.alert(label, 'Automated camera scanner is ready for device build. Enter details below for fast manual add.');
+      setIsPhotoModalVisible(true);
     }
+  };
+
+  const handlePerformBarcodeLookup = async (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      if (Platform.OS === 'web') alert('Please enter a barcode number.');
+      else Alert.alert('Required', 'Please enter a barcode number.');
+      return;
+    }
+
+    setIsLookingUpBarcode(true);
+    try {
+      const product = await lookupBarcode(trimmed);
+      if (product) {
+        setName(product.name);
+        setCategory(product.category);
+        setQuickDate(product.estimatedExpiryDays);
+        setIsBarcodeModalVisible(false);
+        setBarcodeInput('');
+        if (Platform.OS === 'web') {
+          alert(`Found "${product.name}"! Auto-filled category & expiry date.`);
+        } else {
+          Alert.alert('Product Found', `Auto-filled "${product.name}" with estimated expiry in ${product.estimatedExpiryDays} days.`);
+        }
+      } else {
+        if (Platform.OS === 'web') {
+          alert('Barcode not found in database. You can type the details manually.');
+        } else {
+          Alert.alert('Not Found', 'Barcode was not found in the global database. Please enter details manually.');
+        }
+      }
+    } catch {
+      if (Platform.OS === 'web') alert('Could not reach barcode database.');
+      else Alert.alert('Lookup Error', 'Could not reach the barcode database.');
+    } finally {
+      setIsLookingUpBarcode(false);
+    }
+  };
+
+  const handleSimulatePhotoOcr = (sampleName: string, sampleCategory: string, days: number) => {
+    setIsOcrProcessing(true);
+    setTimeout(() => {
+      setName(sampleName);
+      setCategory(sampleCategory);
+      setQuickDate(days);
+      setIsOcrProcessing(false);
+      setIsPhotoModalVisible(false);
+      if (Platform.OS === 'web') {
+        alert(`OCR detected "${sampleName}"! Expiry date set to +${days} days.`);
+      } else {
+        Alert.alert('OCR Detected', `Photo scan detected "${sampleName}". Expiry date auto-filled!`);
+      }
+    }, 500);
   };
 
   const handleSave = async () => {
@@ -498,6 +557,148 @@ export default function AddItemScreen() {
           <Text style={styles.saveButtonText}>{isSubmitting ? 'Saving...' : 'Save Item'}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Barcode Scanner & Lookup Modal */}
+      <Modal
+        visible={isBarcodeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsBarcodeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalIconBox, { backgroundColor: 'rgba(22, 163, 74, 0.12)' }]}>
+                  <Barcode size={22} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Scan or Enter Barcode</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+                    Auto-detects product name & category
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setIsBarcodeModalVisible(false)} style={styles.modalCloseBtn}>
+                <X size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Input & Search */}
+            <View style={[styles.modalInputRow, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+              <TextInput
+                style={[styles.modalTextInput, { color: theme.text }]}
+                placeholder="Enter barcode (e.g. 3017620422003)"
+                placeholderTextColor={theme.textMuted}
+                keyboardType="numeric"
+                value={barcodeInput}
+                onChangeText={setBarcodeInput}
+                onSubmitEditing={() => handlePerformBarcodeLookup(barcodeInput)}
+              />
+              <TouchableOpacity
+                style={[styles.modalSearchBtn, { backgroundColor: theme.primary }]}
+                onPress={() => handlePerformBarcodeLookup(barcodeInput)}
+                disabled={isLookingUpBarcode}
+              >
+                {isLookingUpBarcode ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Search size={18} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Test Samples */}
+            <Text style={[styles.modalSectionLabel, { color: theme.textSecondary }]}>
+              Test with Sample Products:
+            </Text>
+            <View style={styles.sampleGrid}>
+              {SAMPLE_BARCODES.map((item) => (
+                <TouchableOpacity
+                  key={item.code}
+                  style={[styles.sampleChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+                  onPress={() => {
+                    setBarcodeInput(item.code);
+                    handlePerformBarcodeLookup(item.code);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sampleChipEmoji}>{item.emoji}</Text>
+                  <Text style={[styles.sampleChipLabel, { color: theme.text }]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Photo Recognition & OCR Modal */}
+      <Modal
+        visible={isPhotoModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsPhotoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <View style={[styles.modalIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Camera size={22} color="#10B981" />
+                </View>
+                <View>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Photo & Expiry OCR</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+                    Scan packet printed expiry date
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setIsPhotoModalVisible(false)} style={styles.modalCloseBtn}>
+                <X size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Simulation Preview Card */}
+            <View style={[styles.ocrDemoBox, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+              <Sparkles size={24} color={theme.primary} />
+              <Text style={[styles.ocrDemoTitle, { color: theme.text }]}>
+                Optical Character Recognition
+              </Text>
+              <Text style={[styles.ocrDemoText, { color: theme.textSecondary }]}>
+                Reads stamped "EXP / USE BY / BEST BEFORE" dates on food & medicine packaging.
+              </Text>
+            </View>
+
+            {/* Quick Demo OCR Samples */}
+            <Text style={[styles.modalSectionLabel, { color: theme.textSecondary }]}>
+              Try Instant OCR Detection:
+            </Text>
+            <View style={styles.ocrSamplesCol}>
+              {[
+                { name: 'Fresh Milk 500ml', cat: 'dairy', days: 3, emoji: '🥛', text: 'EXP: 24/09/2026' },
+                { name: 'Brown Bread', cat: 'groceries', days: 5, emoji: '🍞', text: 'USE BY: 26/09/2026' },
+                { name: 'Paracetamol 500mg', cat: 'medicine', days: 365, emoji: '💊', text: 'EXP: 09/2027' },
+                { name: 'Sunscreen SPF 50', cat: 'skincare', days: 180, emoji: '🧴', text: 'BEST BEFORE: 03/2027' },
+              ].map((sample) => (
+                <TouchableOpacity
+                  key={sample.name}
+                  style={[styles.ocrSampleCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+                  onPress={() => handleSimulatePhotoOcr(sample.name, sample.cat, sample.days)}
+                  activeOpacity={0.7}
+                  disabled={isOcrProcessing}
+                >
+                  <Text style={styles.sampleChipEmoji}>{sample.emoji}</Text>
+                  <View style={styles.ocrSampleInfo}>
+                    <Text style={[styles.ocrSampleName, { color: theme.text }]}>{sample.name}</Text>
+                    <Text style={[styles.ocrSampleText, { color: theme.primary }]}>{sample.text}</Text>
+                  </View>
+                  <ChevronRight size={16} color={theme.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -711,5 +912,145 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    padding: 6,
+  },
+  modalInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 48,
+    marginBottom: 16,
+  },
+  modalTextInput: {
+    flex: 1,
+    fontSize: 15,
+    height: '100%',
+  },
+  modalSearchBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  sampleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sampleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  sampleChipEmoji: {
+    fontSize: 16,
+  },
+  sampleChipLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ocrDemoBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  ocrDemoTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  ocrDemoText: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  ocrSamplesCol: {
+    gap: 8,
+  },
+  ocrSampleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+  },
+  ocrSampleInfo: {
+    flex: 1,
+  },
+  ocrSampleName: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  ocrSampleText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
