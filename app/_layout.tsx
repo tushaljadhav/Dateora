@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, AppState } from 'react-native';
 import { ThemeProvider, useTheme } from '../src/theme';
 import { initializeDatabase } from '../src/db/client';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
+import { useItemsStore } from '../src/stores/useItemsStore';
 
 function RootNavigation() {
   const { theme, isDark } = useTheme();
@@ -60,11 +61,14 @@ export default function RootLayout() {
   const themePref = useSettingsStore((s) => s.theme);
   const setThemePref = useSettingsStore((s) => s.setTheme);
 
+  const loadItems = useItemsStore((s) => s.loadItems);
+
   useEffect(() => {
     async function init() {
       try {
         await initializeDatabase();
         await loadSettings();
+        await loadItems();
         setDbReady(true);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Database initialization failed';
@@ -72,7 +76,16 @@ export default function RootLayout() {
       }
     }
     init();
-  }, [loadSettings]);
+
+    // Re-verify expiry on app foreground per Rules §3
+    const subscription = AppState.addEventListener('change', async (status) => {
+      if (status === 'active') {
+        await loadItems();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [loadSettings, loadItems]);
 
   if (initError) {
     return (

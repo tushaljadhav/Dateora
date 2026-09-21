@@ -24,9 +24,9 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: lightTheme,
-  isDark: false,
-  preference: 'system',
+  theme: darkTheme,
+  isDark: true,
+  preference: 'dark',
   setPreference: () => {},
   spacing,
   radius,
@@ -37,13 +37,13 @@ export const ThemeProvider: React.FC<{
   children: React.ReactNode;
   preference?: ThemePreference;
   onPreferenceChange?: (pref: ThemePreference) => void;
-}> = ({ children, preference = 'system', onPreferenceChange }) => {
+}> = ({ children, preference = 'dark', onPreferenceChange }) => {
   const systemScheme = useColorScheme();
 
   const isDark = useMemo(() => {
-    if (preference === 'dark') return true;
     if (preference === 'light') return false;
-    return systemScheme === 'dark';
+    // Default to true (GoTall signature dark aesthetic)
+    return true;
   }, [preference, systemScheme]);
 
   const theme = isDark ? darkTheme : lightTheme;

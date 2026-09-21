@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { Item, ItemLifecycleStatus } from '../../src/types/item';
@@ -34,6 +34,14 @@ export default function HistoryScreen() {
   }, [historyItems, activeTab]);
 
   const handleRestore = (item: Item) => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Restore "${item.name}" back to active tracking?`);
+      if (confirmed) {
+        restoreItem(item.id);
+      }
+      return;
+    }
+
     Alert.alert(
       'Restore Item',
       `Restore "${item.name}" back to active tracking?`,
@@ -50,6 +58,14 @@ export default function HistoryScreen() {
   };
 
   const handleDeletePermanent = (item: Item) => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Remove "${item.name}" from history permanently? This cannot be undone.`);
+      if (confirmed) {
+        deleteItem(item.id);
+      }
+      return;
+    }
+
     Alert.alert(
       'Delete Permanently',
       `Remove "${item.name}" from history permanently? This cannot be undone.`,
@@ -69,13 +85,13 @@ export default function HistoryScreen() {
   const getStatusBadge = (status: ItemLifecycleStatus) => {
     switch (status) {
       case 'used':
-        return { label: 'Used', bg: '#DCFCE7', text: theme.successDark };
+        return { label: 'Used', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.35)' };
       case 'finished':
-        return { label: 'Finished', bg: '#E0F2FE', text: theme.accent };
+        return { label: 'Finished', bg: 'rgba(6, 182, 212, 0.15)', text: '#22D3EE', border: 'rgba(6, 182, 212, 0.35)' };
       case 'disposed':
-        return { label: 'Disposed', bg: '#FEE2E2', text: theme.danger };
+        return { label: 'Disposed', bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171', border: 'rgba(239, 68, 68, 0.35)' };
       default:
-        return { label: status, bg: theme.surfaceSubtle, text: theme.textSecondary };
+        return { label: status, bg: theme.surfaceSubtle, text: theme.textSecondary, border: theme.border };
     }
   };
 
@@ -89,7 +105,7 @@ export default function HistoryScreen() {
             <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
               {item.name}
             </Text>
-            <View style={[styles.statusPill, { backgroundColor: badge.bg }]}>
+            <View style={[styles.statusPill, { backgroundColor: badge.bg, borderColor: badge.border, borderWidth: 1 }]}>
               <Text style={[styles.statusText, { color: badge.text }]}>{badge.label}</Text>
             </View>
           </View>
@@ -105,17 +121,17 @@ export default function HistoryScreen() {
           )}
         </View>
 
-        <View style={styles.actionsRow}>
+        <View style={[styles.actionsRow, { borderTopColor: theme.border }]}>
           <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: theme.border }]}
+            style={[styles.actionBtn, { borderColor: 'rgba(59, 130, 246, 0.3)', backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}
             onPress={() => handleRestore(item)}
           >
-            <RotateCcw size={14} color={theme.primary} />
-            <Text style={[styles.actionBtnText, { color: theme.primary }]}>Restore</Text>
+            <RotateCcw size={14} color={theme.primaryLight} />
+            <Text style={[styles.actionBtnText, { color: theme.primaryLight }]}>Restore</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.deleteIconBtn, { borderColor: theme.border }]}
+            style={[styles.deleteIconBtn, { borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
             onPress={() => handleDeletePermanent(item)}
           >
             <Trash2 size={15} color={theme.danger} />

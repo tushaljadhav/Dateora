@@ -64,6 +64,68 @@ export class ItemRepository {
     return rows.map(mapRowToItem);
   }
 
+  public async getAllIncludingHistory(): Promise<Item[]> {
+    return this.getAllItems();
+  }
+
+  public async insertRawItem(item: Item, dailyNotificationTime: string = '09:00'): Promise<void> {
+    const { db } = getDatabase();
+    if (!db) {
+      const list = getWebItems();
+      const existingIdx = list.findIndex((i) => i.id === item.id);
+      if (existingIdx >= 0) {
+        list[existingIdx] = item;
+      } else {
+        list.push(item);
+      }
+      saveWebItems(list);
+      if (item.status === 'active') {
+        await notificationService.scheduleItemReminders(item, dailyNotificationTime);
+      }
+      return;
+    }
+
+    await db
+      .insert(items)
+      .values({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        expiryDate: item.expiryDate,
+        photoUri: item.photoUri,
+        quantity: item.quantity,
+        unit: item.unit,
+        location: item.location,
+        notes: item.notes,
+        reminderOffsets: JSON.stringify(item.reminderOffsets),
+        status: item.status,
+        statusChangedAt: item.statusChangedAt,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })
+      .onConflictDoUpdate({
+        target: items.id,
+        set: {
+          name: item.name,
+          category: item.category,
+          expiryDate: item.expiryDate,
+          photoUri: item.photoUri,
+          quantity: item.quantity,
+          unit: item.unit,
+          location: item.location,
+          notes: item.notes,
+          reminderOffsets: JSON.stringify(item.reminderOffsets),
+          status: item.status,
+          statusChangedAt: item.statusChangedAt,
+          updatedAt: item.updatedAt,
+        },
+      });
+
+    if (item.status === 'active') {
+      await notificationService.scheduleItemReminders(item, dailyNotificationTime);
+    }
+  }
+
   public async getActiveItems(): Promise<Item[]> {
     const { db } = getDatabase();
     if (!db) {

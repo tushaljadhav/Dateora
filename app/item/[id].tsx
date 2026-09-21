@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
@@ -54,6 +54,16 @@ export default function ItemDetailsScreen() {
       disposed: 'Mark as Disposed',
     };
 
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Move "${item.name}" to History under ${status}?`);
+      if (confirmed) {
+        markItemStatus(item.id, status).then(() => {
+          router.back();
+        });
+      }
+      return;
+    }
+
     Alert.alert(
       titles[status],
       `Move "${item.name}" to History under ${status}?`,
@@ -71,6 +81,16 @@ export default function ItemDetailsScreen() {
   };
 
   const handleDelete = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Permanently delete "${item.name}"? This removes all scheduled reminders.`);
+      if (confirmed) {
+        deleteItem(item.id).then(() => {
+          router.back();
+        });
+      }
+      return;
+    }
+
     Alert.alert(
       'Delete Item',
       `Permanently delete "${item.name}"? This removes all scheduled reminders.`,

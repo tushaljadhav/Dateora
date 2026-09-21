@@ -48,7 +48,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (!db) {
         const web = getWebSettings();
         set({
-          theme: web.theme || DEFAULT_SETTINGS.theme,
+          theme: web.theme === 'light' ? 'light' : 'dark',
           expiringSoonWindowDays: web.expiringSoonWindowDays ?? DEFAULT_SETTINGS.expiringSoonWindowDays,
           defaultReminderOffsets: web.defaultReminderOffsets ?? DEFAULT_SETTINGS.defaultReminderOffsets,
           dailyNotificationTime: web.dailyNotificationTime || DEFAULT_SETTINGS.dailyNotificationTime,
@@ -66,7 +66,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       });
 
       set({
-        theme: (settingsMap['theme'] as ThemePreference) || DEFAULT_SETTINGS.theme,
+        theme: settingsMap['theme'] === 'light' ? 'light' : 'dark',
         expiringSoonWindowDays: settingsMap['expiringSoonWindowDays']
           ? parseInt(settingsMap['expiringSoonWindowDays'], 10)
           : DEFAULT_SETTINGS.expiringSoonWindowDays,
