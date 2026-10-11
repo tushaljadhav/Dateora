@@ -6,22 +6,10 @@ import { appSettingsTable } from '../db/schema';
 
 /**
  * The base URL of the Dateora API server.
- * 
- * - In development on Android emulator, 10.0.2.2 maps to host's localhost.
- * - On iOS simulator, localhost works directly.
- * - On web, localhost works directly.
- * - For physical devices, replace with your machine's LAN IP.
+ * Points to the live Render cloud deployment.
  */
-function getApiBaseUrl(): string {
-  if (Platform.OS === 'android') {
-    // Android emulator routes 10.0.2.2 to host machine's localhost
-    return 'http://10.0.2.2:3001/api';
-  }
-  // iOS simulator / web / physical device on same network
-  return 'http://localhost:3001/api';
-}
+export const API_BASE = 'https://dateora.onrender.com/api';
 
-const API_BASE = getApiBaseUrl();
 
 export interface SyncResult {
   success: boolean;
