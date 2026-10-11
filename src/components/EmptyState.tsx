@@ -1,36 +1,26 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
-import { DateoraLogo } from './DateoraLogo';
-import { Plus } from 'lucide-react-native';
-
-const ILLUSTRATIONS = {
-  basket: require('../../assets/illustrations/empty_basket.png'),
-  groceries: require('../../assets/illustrations/groceries_hero.png'),
-  bell: require('../../assets/illustrations/bell_hero.png'),
-  shield: require('../../assets/illustrations/shield_hero.png'),
-};
+import { PackageOpen, Plus, LucideIcon } from 'lucide-react-native';
 
 interface EmptyStateProps {
   title?: string;
   subtitle?: string;
   actionLabel?: string;
   onAction?: () => void;
-  icon?: React.ReactNode;
-  illustration?: keyof typeof ILLUSTRATIONS;
+  icon?: LucideIcon | React.ReactNode;
   style?: ViewStyle;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title = 'No items yet',
-  subtitle = 'Start tracking your items to keep them fresh and safe.',
+  subtitle = 'Start tracking items to get alerted well before they expire.',
   actionLabel,
   onAction,
   icon,
-  illustration = 'basket',
   style,
 }) => {
-  const { theme, isDark } = useTheme();
+  const { theme, shadows } = useTheme();
 
   return (
     <View
@@ -38,31 +28,29 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         styles.container,
         {
           backgroundColor: theme.surface,
-          borderColor: theme.border,
+          borderColor: theme.borderSubtle,
         },
+        shadows.sm,
         style,
       ]}
     >
-      {illustration && ILLUSTRATIONS[illustration] ? (
-        <View style={styles.illustrationWrapper}>
-          <Image
-            source={ILLUSTRATIONS[illustration]}
-            style={styles.illustrationImage}
-            resizeMode="contain"
-          />
-        </View>
-      ) : (
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7',
-            },
-          ]}
-        >
-          {icon || <DateoraLogo size={36} />}
-        </View>
-      )}
+      <View
+        style={[
+          styles.iconCircle,
+          {
+            backgroundColor: theme.surfaceSubtle,
+            borderColor: theme.borderSubtle,
+          },
+        ]}
+      >
+        {React.isValidElement(icon) ? (
+          icon
+        ) : typeof icon === 'function' ? (
+          React.createElement(icon, { size: 28, color: theme.primary, strokeWidth: 1.8 })
+        ) : (
+          <PackageOpen size={28} color={theme.primary} strokeWidth={1.8} />
+        )}
+      </View>
 
       <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
       <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
@@ -73,9 +61,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.primary }]}
           onPress={onAction}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
-          <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
+          <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
           <Text style={styles.actionButtonText}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
@@ -85,65 +73,49 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
     borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  illustrationWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-  illustrationImage: {
-    width: 110,
-    height: 110,
+    marginTop: 16,
   },
   iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 6,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-    maxWidth: 280,
-    marginBottom: 16,
+    maxWidth: 260,
+    marginBottom: 20,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
-    marginTop: 4,
   },
   actionButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

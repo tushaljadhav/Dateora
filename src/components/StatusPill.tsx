@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { CheckCircle, Clock, WarningCircle } from 'phosphor-react-native';
 import { useTheme } from '../theme';
 
 interface StatusPillProps {
@@ -15,43 +16,43 @@ export const StatusPill: React.FC<StatusPillProps> = ({
   label,
   style,
 }) => {
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
 
   let text = label;
-  let bg = '#DCFCE7';
-  let color = '#15803D';
-  let dotColor = '#16A34A';
+  let bg = theme.status.safe.bg;
+  let color = theme.status.safe.color;
+  let IconComponent = CheckCircle;
 
   if (status === 'expired') {
-    text = text || 'Expired';
-    bg = isDark ? 'rgba(239, 68, 68, 0.22)' : '#FEE2E2';
-    color = isDark ? '#F87171' : '#DC2626';
-    dotColor = '#EF4444';
+    text = text || (daysLeft < 0 ? `Expired (${Math.abs(daysLeft)}d ago)` : 'Expired');
+    bg = theme.status.expired.bg;
+    color = theme.status.expired.color;
+    IconComponent = WarningCircle;
   } else if (daysLeft === 0) {
-    text = text || 'Today';
-    bg = isDark ? 'rgba(239, 68, 68, 0.22)' : '#FEE2E2';
-    color = isDark ? '#F87171' : '#DC2626';
-    dotColor = '#EF4444';
+    text = text || 'Expires today';
+    bg = theme.status.expired.bg;
+    color = theme.status.expired.color;
+    IconComponent = WarningCircle;
   } else if (daysLeft === 1) {
-    text = text || '1 day';
-    bg = isDark ? 'rgba(245, 158, 11, 0.22)' : '#FEF3C7';
-    color = isDark ? '#FBBF24' : '#D97706';
-    dotColor = '#F59E0B';
+    text = text || '1 day left';
+    bg = theme.status.expiring.bg;
+    color = theme.status.expiring.color;
+    IconComponent = Clock;
   } else if (status === 'expiring_soon') {
-    text = text || `${daysLeft} days`;
-    bg = isDark ? 'rgba(245, 158, 11, 0.22)' : '#FEF3C7';
-    color = isDark ? '#FBBF24' : '#D97706';
-    dotColor = '#F59E0B';
+    text = text || `${daysLeft} days left`;
+    bg = theme.status.expiring.bg;
+    color = theme.status.expiring.color;
+    IconComponent = Clock;
   } else {
-    text = text || (daysLeft > 0 ? `${daysLeft} days` : 'Safe');
-    bg = isDark ? 'rgba(34, 197, 94, 0.20)' : '#DCFCE7';
-    color = isDark ? '#34D399' : '#15803D';
-    dotColor = '#16A34A';
+    text = text || `${daysLeft} days left`;
+    bg = theme.status.safe.bg;
+    color = theme.status.safe.color;
+    IconComponent = CheckCircle;
   }
 
   return (
     <View style={[styles.pill, { backgroundColor: bg }, style]}>
-      <View style={[styles.dot, { backgroundColor: dotColor }]} />
+      <IconComponent size={13} color={color} weight="fill" />
       <Text style={[styles.text, { color }]}>{text}</Text>
     </View>
   );
@@ -61,20 +62,16 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 9999,
-    gap: 5,
+    borderRadius: 999,
+    gap: 4,
     flexShrink: 0,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
   text: {
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
-    letterSpacing: -0.2,
+    letterSpacing: 0.1,
   },
 });

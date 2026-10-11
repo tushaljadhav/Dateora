@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand Gradient: 135deg #3B6BFF to #7C5CFF -->
+    <linearGradient id="brandGrad1" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#3B6BFF"/>
+      <stop offset="100%" stopColor="#7C5CFF"/>
+    </linearGradient>
+    <filter id="softShadow1" x="32" y="36" width="448" height="448" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#3B6BFF" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow Base -->
+  <rect x="76" y="76" width="360" height="360" rx="96" fill="url(#brandGrad1)" filter="url(#softShadow1)"/>
+
+  <!-- Calendar Hanger Tabs -->
+  <rect x="168" y="44" width="36" height="52" rx="14" fill="#FFFFFF"/>
+  <rect x="308" y="44" width="36" height="52" rx="14" fill="#FFFFFF"/>
+
+  <!-- Calendar Page Body Line / Divider -->
+  <path d="M76 176 H436" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Central "Caught in Time" Bold Fresh Checkmark -->
+  <path d="M188 286 L236 334 L334 224" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Top-Right Vigilant Alert Dot (Aura / Reminder) -->
+  <circle cx="396" cy="116" r="26" fill="#FF5C6C" stroke="#FFFFFF" stroke-width="8"/>
+</svg>

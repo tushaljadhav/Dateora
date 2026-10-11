@@ -7,6 +7,7 @@ export interface AppSettings {
   expiringSoonWindowDays: number; // default 7
   hasCompletedOnboarding: boolean;
   notificationsEnabled: boolean;
+  geminiApiKey?: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -16,4 +17,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   expiringSoonWindowDays: 7,
   hasCompletedOnboarding: false,
   notificationsEnabled: true,
+  geminiApiKey: '',
 };

@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand Gradient: 135deg #3B6BFF to #7C5CFF -->
+    <linearGradient id="brandGrad3" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#3B6BFF"/>
+      <stop offset="100%" stopColor="#7C5CFF"/>
+    </linearGradient>
+    <linearGradient id="arcGrad" x1="160" y1="160" x2="352" y2="352" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFFFFF"/>
+      <stop offset="100%" stopColor="#E6E8F5"/>
+    </linearGradient>
+    <filter id="softShadow3" x="32" y="36" width="448" height="448" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#3B6BFF" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Rounded Shield/Squircle Tile -->
+  <rect x="76" y="76" width="360" height="360" rx="96" fill="url(#brandGrad3)" filter="url(#softShadow3)"/>
+
+  <!-- Clock Arc Ring (270-degree arc suggesting time vigilance) -->
+  <path d="M256 168 C207.399 168 168 207.399 168 256 C168 304.601 207.399 344 256 344 C304.601 344 344 304.601 344 256 C344 238 338 221 328 207" stroke="url(#arcGrad)" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Swift Clock Hand / Fresh Checkmark -->
+  <path d="M256 206 V262 L300 284" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Top-Right Luminous Alert Aura (Dateora Alert Signal) -->
+  <circle cx="384" cy="128" r="28" fill="#FFB020" stroke="#FFFFFF" stroke-width="8"/>
+</svg>

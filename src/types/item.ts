@@ -1,4 +1,4 @@
-export type ItemLifecycleStatus = 'active' | 'used' | 'finished' | 'disposed';
+export type ItemLifecycleStatus = 'active' | 'used' | 'finished' | 'disposed' | 'expired';
 
 export type ComputedItemStatus = 'expired' | 'expiring_soon' | 'safe';
 

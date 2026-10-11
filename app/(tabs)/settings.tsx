@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useTheme, ThemePreference } from '../../src/theme';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
@@ -22,11 +23,14 @@ import {
   commitImport,
   ImportPreview,
 } from '../../src/services/exportService';
+import * as Linking from 'expo-linking';
+import { testGeminiApiKey } from '../../src/services/aiVisionService';
 import {
   Moon,
   Sun,
   Monitor,
   Bell,
+  BellRing,
   Clock,
   Database,
   Shield,
@@ -37,6 +41,15 @@ import {
   AlertTriangle,
   X,
   FileJson,
+  ExternalLink,
+  Sparkles,
+  Key,
+  Eye,
+  EyeOff,
+  Check,
+  HelpCircle,
+  Cloud,
+  RefreshCw,
 } from 'lucide-react-native';
 import { DateoraLogo } from '../../src/components/DateoraLogo';
 
@@ -63,8 +76,47 @@ export default function SettingsScreen() {
   const defaultReminderOffsets = useSettingsStore((s) => s.defaultReminderOffsets);
   const setDefaultReminderOffsets = useSettingsStore((s) => s.setDefaultReminderOffsets);
 
+  const geminiApiKey = useSettingsStore((s) => s.geminiApiKey);
+  const setGeminiApiKey = useSettingsStore((s) => s.setGeminiApiKey);
+
   const loadItems = useItemsStore((s) => s.loadItems);
   const loadHistory = useItemsStore((s) => s.loadHistory);
+  const syncToCloud = useItemsStore((s) => s.syncToCloud);
+  const syncFromCloud = useItemsStore((s) => s.syncFromCloud);
+  const isSyncing = useItemsStore((s) => s.isSyncing);
+  const lastSyncAt = useItemsStore((s) => s.lastSyncAt);
+  const syncError = useItemsStore((s) => s.syncError);
+
+  // State for Gemini AI Vision Key
+  const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey || '');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isTestingKey, setIsTestingKey] = useState(false);
+  const [keySavedBadge, setKeySavedBadge] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    if (geminiApiKey !== undefined) {
+      setApiKeyInput(geminiApiKey);
+    }
+  }, [geminiApiKey]);
+
+  const handleSaveApiKey = async () => {
+    await setGeminiApiKey(apiKeyInput.trim());
+    setKeySavedBadge(true);
+    setTimeout(() => setKeySavedBadge(false), 2500);
+  };
+
+  const handleTestApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      Alert.alert('API Key Required', 'Please enter your Gemini API key first.');
+      return;
+    }
+    setIsTestingKey(true);
+    setTestResult(null);
+    const res = await testGeminiApiKey(apiKeyInput.trim());
+    setIsTestingKey(false);
+    setTestResult(res);
+  };
 
   // State for import workflow
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -72,6 +124,7 @@ export default function SettingsScreen() {
   const [isImporting, setIsImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
 
   const fileInputRef = useRef<any>(null);
 
@@ -464,6 +517,148 @@ export default function SettingsScreen() {
               })}
             </View>
           </View>
+
+          {Platform.OS !== 'web' && (
+            <>
+              <View style={[styles.divider, { backgroundColor: theme.border, marginTop: 14 }]} />
+              <TouchableOpacity
+                style={[styles.osSettingsBtn, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+                onPress={() => Linking.openSettings()}
+                activeOpacity={0.7}
+              >
+                <View style={styles.osSettingsLeft}>
+                  <BellRing size={16} color={theme.primary} />
+                  <Text style={[styles.osSettingsBtnText, { color: theme.text }]}>
+                    Device Notification Settings
+                  </Text>
+                </View>
+                <ExternalLink size={14} color={theme.textMuted} />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* AI Vision Scanner (Google Gemini) */}
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>AI VISION ASSISTANT</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.aiHeaderRow}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 107, 255, 0.12)' }]}>
+              <Sparkles size={18} color={theme.primary} />
+            </View>
+            <View style={styles.rowTextCol}>
+              <View style={styles.aiTitleBadgeRow}>
+                <Text style={[styles.labelTitle, { color: theme.text }]}>Google Gemini 1.5 Flash</Text>
+                <View style={[styles.freeTag, { backgroundColor: 'rgba(34, 197, 139, 0.12)' }]}>
+                  <Text style={[styles.freeTagText, { color: '#16A34A' }]}>100% FREE</Text>
+                </View>
+              </View>
+              <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
+                Auto-extracts product name, category & expiry dates from photos
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* API Key Input */}
+          <Text style={[styles.inputLabelSmall, { color: theme.text }]}>Gemini API Key</Text>
+          <View style={[styles.apiKeyInputRow, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+            <Key size={16} color={theme.textMuted} style={styles.inputPrefixIcon} />
+            <TextInput
+              style={[styles.apiKeyTextInput, { color: theme.text }]}
+              placeholder="Paste key (starts with AIzaSy...)"
+              placeholderTextColor={theme.textMuted}
+              value={apiKeyInput}
+              onChangeText={setApiKeyInput}
+              secureTextEntry={!showApiKey}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              onPress={() => setShowApiKey(!showApiKey)}
+              style={styles.eyeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {showApiKey ? (
+                <EyeOff size={16} color={theme.textMuted} />
+              ) : (
+                <Eye size={16} color={theme.textMuted} />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Key Buttons: Save and Test */}
+          <View style={styles.aiActionsRow}>
+            <TouchableOpacity
+              style={[styles.aiSaveBtn, { backgroundColor: theme.primary }]}
+              onPress={handleSaveApiKey}
+              activeOpacity={0.7}
+            >
+              {keySavedBadge ? (
+                <>
+                  <Check size={15} color="#FFFFFF" />
+                  <Text style={styles.aiBtnText}>Saved!</Text>
+                </>
+              ) : (
+                <Text style={styles.aiBtnText}>Save Key</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.aiTestBtn, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+              onPress={handleTestApiKey}
+              disabled={isTestingKey}
+              activeOpacity={0.7}
+            >
+              {isTestingKey ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Text style={[styles.aiTestBtnText, { color: theme.text }]}>Test Connection</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Test Result Message */}
+          {testResult && (
+            <View
+              style={[
+                styles.testResultBox,
+                {
+                  backgroundColor: testResult.success ? 'rgba(34, 197, 139, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                  borderColor: testResult.success ? 'rgba(34, 197, 139, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                },
+              ]}
+            >
+              {testResult.success ? (
+                <CheckCircle2 size={15} color="#16A34A" />
+              ) : (
+                <AlertTriangle size={15} color="#DC2626" />
+              )}
+              <Text
+                style={[
+                  styles.testResultText,
+                  { color: testResult.success ? '#16A34A' : '#DC2626' },
+                ]}
+              >
+                {testResult.message}
+              </Text>
+            </View>
+          )}
+
+          {/* Free Key Instructions link */}
+          <TouchableOpacity
+            style={[styles.getKeyHelperLink, { backgroundColor: theme.surfaceSubtle }]}
+            onPress={() => Linking.openURL('https://aistudio.google.com/app/apikey')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.helperLeft}>
+              <HelpCircle size={15} color={theme.primary} />
+              <Text style={[styles.helperLinkText, { color: theme.primary }]}>
+                Get your 100% Free Key from Google AI Studio
+              </Text>
+            </View>
+            <ExternalLink size={13} color={theme.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Data Portability */}
@@ -508,13 +703,121 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Cloud Sync Section */}
+        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>CLOUD SYNC</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.rowBetween}>
+            <View style={styles.rowLabel}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 107, 255, 0.12)' }]}>
+                <Cloud size={18} color="#3B6BFF" />
+              </View>
+              <View style={styles.rowTextCol}>
+                <Text style={[styles.labelTitle, { color: theme.text }]}>MySQL Cloud Backup</Text>
+                <Text style={[styles.labelSubtitle, { color: theme.textSecondary }]}>
+                  Sync data to your remote MySQL database
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {lastSyncAt && (
+            <Text style={[styles.labelSubtitle, { color: theme.textMuted, marginTop: 6, fontSize: 11 }]}>
+              Last synced: {new Date(lastSyncAt).toLocaleString()}
+            </Text>
+          )}
+
+          {syncError && (
+            <View
+              style={[
+                styles.testResultBox,
+                {
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                },
+              ]}
+            >
+              <AlertTriangle size={15} color="#DC2626" />
+              <Text style={[styles.testResultText, { color: '#DC2626' }]}>{syncError}</Text>
+            </View>
+          )}
+
+          {syncSuccess && !syncError && (
+            <View
+              style={[
+                styles.testResultBox,
+                {
+                  backgroundColor: 'rgba(34, 197, 139, 0.12)',
+                  borderColor: 'rgba(34, 197, 139, 0.3)',
+                },
+              ]}
+            >
+              <CheckCircle2 size={15} color="#16A34A" />
+              <Text style={[styles.testResultText, { color: '#16A34A' }]}>Sync completed successfully!</Text>
+            </View>
+          )}
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          <View style={styles.portabilityButtonsRow}>
+            <TouchableOpacity
+              style={[
+                styles.portabilityBtn,
+                { backgroundColor: 'rgba(59, 107, 255, 0.12)', borderColor: 'rgba(59, 107, 255, 0.3)' },
+              ]}
+              onPress={async () => {
+                setSyncSuccess(false);
+                await syncToCloud();
+                const err = useItemsStore.getState().syncError;
+                if (!err) setSyncSuccess(true);
+                setTimeout(() => setSyncSuccess(false), 3000);
+              }}
+              disabled={isSyncing}
+              activeOpacity={0.7}
+            >
+              {isSyncing ? (
+                <ActivityIndicator size="small" color="#3B6BFF" />
+              ) : (
+                <>
+                  <Upload size={18} color="#3B6BFF" />
+                  <Text style={[styles.portabilityBtnText, { color: '#3B6BFF' }]}>Push to Cloud</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.portabilityBtn,
+                { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)' },
+              ]}
+              onPress={async () => {
+                setSyncSuccess(false);
+                await syncFromCloud();
+                const err = useItemsStore.getState().syncError;
+                if (!err) setSyncSuccess(true);
+                setTimeout(() => setSyncSuccess(false), 3000);
+              }}
+              disabled={isSyncing}
+              activeOpacity={0.7}
+            >
+              {isSyncing ? (
+                <ActivityIndicator size="small" color="#10B981" />
+              ) : (
+                <>
+                  <Download size={18} color="#10B981" />
+                  <Text style={[styles.portabilityBtnText, { color: '#10B981' }]}>Pull from Cloud</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Data & Privacy */}
         <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>PRIVACY & RESET</Text>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.privacyBanner}>
             <Shield size={20} color={theme.primary} />
             <Text style={[styles.privacyText, { color: theme.textSecondary }]}>
-              100% Offline & Private. No accounts, no trackers, no external cloud syncing. All data lives on this device.
+              Your data is stored locally by default. Cloud sync sends data to your own MySQL server only when you explicitly push.
             </Text>
           </View>
 
@@ -548,7 +851,7 @@ export default function SettingsScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.rowBetween}>
             <Text style={[styles.labelTitle, { color: theme.text }]}>Architecture</Text>
-            <Text style={[styles.valueText, { color: theme.primary }]}>Offline SQLite + Local Storage</Text>
+            <Text style={[styles.valueText, { color: theme.primary }]}>SQLite + MySQL Cloud Sync</Text>
           </View>
         </View>
       </ScrollView>
@@ -927,5 +1230,133 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 13,
+  },
+  osSettingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  osSettingsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  osSettingsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  aiHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aiTitleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  freeTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  freeTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  inputLabelSmall: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  apiKeyInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    height: 44,
+  },
+  inputPrefixIcon: {
+    marginRight: 8,
+  },
+  apiKeyTextInput: {
+    flex: 1,
+    fontSize: 13,
+    paddingVertical: 0,
+  },
+  eyeBtn: {
+    padding: 6,
+  },
+  aiActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  aiSaveBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  aiBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  aiTestBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  aiTestBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  testResultBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  testResultText: {
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  getKeyHelperLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  helperLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  helperLinkText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

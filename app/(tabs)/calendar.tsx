@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
@@ -185,7 +185,11 @@ export default function CalendarScreen() {
                     onPress={() => router.push(`/item/${item.id}`)}
                     activeOpacity={0.7}
                   >
-                    <CategoryBadge category={item.category} size="md" />
+                    {item.photoUri ? (
+                      <Image source={{ uri: item.photoUri }} style={styles.sheetItemPhotoThumb} resizeMode="cover" />
+                    ) : (
+                      <CategoryBadge category={item.category} size="md" />
+                    )}
 
                     <View style={styles.sheetItemTextCol}>
                       <Text style={[styles.sheetItemName, { color: theme.text }]} numberOfLines={1}>
@@ -324,6 +328,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     padding: 12,
+  },
+  sheetItemPhotoThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    marginRight: 12,
   },
   sheetItemIcon: {
     width: 40,

@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand Gradient: 135deg #3B6BFF to #7C5CFF -->
+    <linearGradient id="brandGrad2" x1="80" y1="80" x2="432" y2="432" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#3B6BFF"/>
+      <stop offset="100%" stopColor="#7C5CFF"/>
+    </linearGradient>
+    <filter id="softShadow2" x="40" y="44" width="432" height="432" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#7C5CFF" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Clean Canvas Squircle Backdrop -->
+  <rect x="76" y="76" width="360" height="360" rx="96" fill="#F6F7FF"/>
+
+  <!-- Monogram D Body: Crafted from continuous fluid ribbon -->
+  <path d="M168 144 C168 130.745 178.745 120 192 120 H270 C345.112 120 406 180.888 406 256 C406 331.112 345.112 392 270 392 H192 C178.745 392 168 381.255 168 368 V144 Z" fill="url(#brandGrad2)" filter="url(#softShadow2)"/>
+
+  <!-- Inner Negative-Space Calendar Page Void with Alert Dot -->
+  <path d="M232 188 H270 C307.555 188 338 218.445 338 256 C338 293.555 307.555 324 270 324 H232 V188 Z" fill="#FFFFFF"/>
+
+  <!-- Pulse Alert Arc / Notification Beacon inside D -->
+  <circle cx="282" cy="256" r="22" fill="#7C5CFF"/>
+  <circle cx="372" cy="140" r="24" fill="#FFB020" stroke="#FFFFFF" stroke-width="7"/>
+</svg>

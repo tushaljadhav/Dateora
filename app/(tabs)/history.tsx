@@ -8,16 +8,17 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { Item, ItemLifecycleStatus } from '../../src/types/item';
-import { formatDisplayDate } from '../../src/services/statusCalculator';
+import { formatDisplayDate, evaluateItemStatus } from '../../src/services/statusCalculator';
 import { RotateCcw, CheckCircle2, Trash2, Archive, XCircle } from 'lucide-react-native';
 import { EmptyState } from '../../src/components/EmptyState';
 import { CategoryBadge } from '../../src/components/CategoryBadge';
 
-type HistoryFilterTab = 'all' | 'used' | 'finished' | 'disposed';
+type HistoryFilterTab = 'all' | 'used' | 'finished' | 'disposed' | 'expired';
 
 export default function HistoryScreen() {
   const { theme } = useTheme();
@@ -41,6 +42,11 @@ export default function HistoryScreen() {
 
   const filteredHistory = useMemo(() => {
     if (activeTab === 'all') return historyItems;
+    if (activeTab === 'expired') {
+      return historyItems.filter(
+        (i) => i.status === 'expired' || evaluateItemStatus(i.expiryDate).status === 'expired'
+      );
+    }
     return historyItems.filter((i) => i.status === activeTab);
   }, [historyItems, activeTab]);
 
@@ -101,6 +107,8 @@ export default function HistoryScreen() {
         return { label: 'Finished', bg: 'rgba(6, 182, 212, 0.12)', text: '#0891B2' };
       case 'disposed':
         return { label: 'Disposed', bg: 'rgba(239, 68, 68, 0.12)', text: '#DC2626' };
+      case 'expired':
+        return { label: 'Expired', bg: 'rgba(239, 68, 68, 0.12)', text: '#DC2626' };
       default:
         return { label: status, bg: theme.surfaceSubtle, text: theme.textSecondary };
     }
@@ -112,7 +120,11 @@ export default function HistoryScreen() {
     return (
       <View style={[styles.historyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.cardHeaderRow}>
-          <CategoryBadge category={item.category} size="md" />
+          {item.photoUri ? (
+            <Image source={{ uri: item.photoUri }} style={styles.itemPhotoThumb} resizeMode="cover" />
+          ) : (
+            <CategoryBadge category={item.category} size="md" />
+          )}
 
           <View style={styles.cardMain}>
             <View style={styles.titleRow}>
@@ -164,6 +176,7 @@ export default function HistoryScreen() {
     { id: 'used', label: 'Used', emoji: '✅' },
     { id: 'finished', label: 'Finished', emoji: '✨' },
     { id: 'disposed', label: 'Disposed', emoji: '🗑️' },
+    { id: 'expired', label: 'Expired', emoji: '⚠️' },
   ];
 
   return (
@@ -265,6 +278,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 14,
     gap: 12,
+  },
+  itemPhotoThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   cardMain: {
     flex: 1,

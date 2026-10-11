@@ -8,6 +8,7 @@ import {
   Alert,
   Platform,
   Switch,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
@@ -27,6 +28,7 @@ import {
   Layers,
   Bell,
   Archive,
+  Edit3,
 } from 'lucide-react-native';
 import { StatusPill } from '../../src/components/StatusPill';
 import { CategoryBadge } from '../../src/components/CategoryBadge';
@@ -40,7 +42,10 @@ export default function ItemDetailsScreen() {
   const items = useItemsStore((s) => s.items);
   const markItemStatus = useItemsStore((s) => s.markItemStatus);
   const deleteItem = useItemsStore((s) => s.deleteItem);
+  const updateItem = useItemsStore((s) => s.updateItem);
   const expiringSoonWindowDays = useSettingsStore((s) => s.expiringSoonWindowDays);
+  const defaultReminderOffsets = useSettingsStore((s) => s.defaultReminderOffsets);
+  const dailyNotificationTime = useSettingsStore((s) => s.dailyNotificationTime);
 
   const item = useMemo(() => items.find((i) => i.id === id), [items, id]);
   const [remindMe, setRemindMe] = useState(true);
@@ -128,6 +133,25 @@ export default function ItemDetailsScreen() {
 
   const categoryVisual = getCategoryVisual(item.category);
 
+  const hasReminders = (item.reminderOffsets || []).length > 0;
+
+  const handleToggleReminders = async (enabled: boolean) => {
+    try {
+      const newOffsets = enabled
+        ? defaultReminderOffsets && defaultReminderOffsets.length > 0
+          ? defaultReminderOffsets
+          : [3, 1]
+        : [];
+      await updateItem({ id: item.id, reminderOffsets: newOffsets }, dailyNotificationTime);
+    } catch {
+      Alert.alert('Error', 'Failed to update reminder settings.');
+    }
+  };
+
+  const handleEdit = () => {
+    router.push({ pathname: '/edit-item', params: { id: item.id } });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Top Header */}
@@ -136,21 +160,35 @@ export default function ItemDetailsScreen() {
           <ArrowLeft size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Item Details</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={handleDelete}>
-          <Trash2 size={20} color={theme.danger} />
-        </TouchableOpacity>
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={handleEdit} activeOpacity={0.7} accessibilityLabel="Edit item">
+            <Edit3 size={19} color={theme.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.headerActionBtn, { marginLeft: 6 }]} onPress={handleDelete} activeOpacity={0.7} accessibilityLabel="Delete item">
+            <Trash2 size={19} color={theme.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero Card */}
         <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.heroTopRow}>
-            <CategoryBadge category={item.category} size="xl" />
-            <StatusPill
-              daysLeft={evaluation.daysLeft}
-              status={evaluation.status}
-            />
-          </View>
+          {item.photoUri ? (
+            <View style={styles.heroPhotoWrapper}>
+              <Image source={{ uri: item.photoUri }} style={styles.heroPhotoImage} resizeMode="cover" />
+              <View style={styles.heroPhotoOverlayPill}>
+                <StatusPill daysLeft={evaluation.daysLeft} status={evaluation.status} />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.heroTopRow}>
+              <CategoryBadge category={item.category} size="xl" />
+              <StatusPill
+                daysLeft={evaluation.daysLeft}
+                status={evaluation.status}
+              />
+            </View>
+          )}
 
           <View style={styles.heroTitleCol}>
             <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
@@ -258,13 +296,15 @@ export default function ItemDetailsScreen() {
               <View style={styles.detailTextCol}>
                 <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>Remind Me</Text>
                 <Text style={[styles.detailValue, { color: theme.text }]}>
-                  Alerts: {item.reminderOffsets.map((o) => `${o}d`).join(', ')} before
+                  {hasReminders
+                    ? `Alerts: ${item.reminderOffsets.map((o) => `${o}d`).join(', ')} before`
+                    : 'Reminders disabled'}
                 </Text>
               </View>
             </View>
             <Switch
-              value={remindMe}
-              onValueChange={setRemindMe}
+              value={hasReminders}
+              onValueChange={handleToggleReminders}
               trackColor={{ false: theme.border, true: theme.primary }}
             />
           </View>
@@ -310,15 +350,26 @@ export default function ItemDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Delete Soft Red Button */}
-          <TouchableOpacity
-            style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.25)' }]}
-            onPress={handleDelete}
-            activeOpacity={0.7}
-          >
-            <Trash2 size={18} color="#EF4444" />
-            <Text style={[styles.deleteBtnText, { color: '#EF4444' }]}>Delete Item</Text>
-          </TouchableOpacity>
+          {/* Action Row: Edit Item & Delete Item */}
+          <View style={styles.bottomActionsRow}>
+            <TouchableOpacity
+              style={[styles.editActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={handleEdit}
+              activeOpacity={0.7}
+            >
+              <Edit3 size={17} color={theme.primary} />
+              <Text style={[styles.editActionBtnText, { color: theme.primary }]}>Edit Item</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.25)' }]}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+            >
+              <Trash2 size={17} color="#EF4444" />
+              <Text style={[styles.deleteBtnText, { color: '#EF4444' }]}>Delete Item</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -382,6 +433,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  heroPhotoWrapper: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  heroPhotoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPhotoOverlayPill: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
   heroTitleCol: {
     width: '100%',
@@ -507,7 +575,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  deleteBtn: {
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  bottomActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  editActionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -515,7 +600,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     gap: 8,
-    marginTop: 4,
+  },
+  editActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  deleteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
   },
   deleteBtnText: {
     fontSize: 14,

@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
@@ -138,7 +139,11 @@ export default function ItemsScreen() {
         onPress={() => router.push(`/item/${item.id}`)}
         activeOpacity={0.7}
       >
-        <CategoryBadge category={item.category} size="md" />
+        {item.photoUri ? (
+          <Image source={{ uri: item.photoUri }} style={styles.itemPhotoThumb} resizeMode="cover" />
+        ) : (
+          <CategoryBadge category={item.category} size="md" />
+        )}
 
         <View style={styles.itemInfo}>
           <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
@@ -410,6 +415,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
     gap: 12,
+  },
+  itemPhotoThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   itemInfo: {
     flex: 1,

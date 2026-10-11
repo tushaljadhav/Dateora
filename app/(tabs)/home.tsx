@@ -10,30 +10,33 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme';
 import { useItemsStore } from '../../src/stores/useItemsStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { useFiltersStore } from '../../src/stores/useFiltersStore';
-import { evaluateItemStatus, formatDisplayDate } from '../../src/services/statusCalculator';
+import { evaluateItemStatus } from '../../src/services/statusCalculator';
+import { notificationService } from '../../src/services/notificationService';
 import {
   Plus,
-  Search,
+  MagnifyingGlass,
   Bell,
   Clock,
   Package,
-  ChevronRight,
-  Sparkles,
-  AlertTriangle,
-  Camera,
+  WarningCircle,
+  CaretRight,
+  ShieldCheck,
   MapPin,
-} from 'lucide-react-native';
+  CalendarBlank,
+} from 'phosphor-react-native';
 import { DateoraLogo } from '../../src/components/DateoraLogo';
 import { StatusPill } from '../../src/components/StatusPill';
 import { CategoryBadge } from '../../src/components/CategoryBadge';
 import { POPULAR_CATEGORIES } from '../../src/theme/categoryVisuals';
 
 export default function HomeScreen() {
-  const { theme, isDark } = useTheme();
+  const { theme, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const items = useItemsStore((s) => s.items);
@@ -41,6 +44,7 @@ export default function HomeScreen() {
   const loadItems = useItemsStore((s) => s.loadItems);
 
   const expiringSoonWindowDays = useSettingsStore((s) => s.expiringSoonWindowDays);
+  const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
   const setStatusFilter = useFiltersStore((s) => s.setStatusFilter);
   const setSearchQuery = useFiltersStore((s) => s.setSearchQuery);
   const toggleCategory = useFiltersStore((s) => s.toggleCategory);
@@ -52,34 +56,43 @@ export default function HomeScreen() {
     loadItems();
   }, [loadItems]);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+  const { greeting, formattedToday } = useMemo(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    let g = 'Good morning';
+    if (hour >= 12 && hour < 17) g = 'Good afternoon';
+    else if (hour >= 17) g = 'Good evening';
+
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    };
+    const dateStr = now.toLocaleDateString(undefined, options);
+    return { greeting: g, formattedToday: dateStr };
   }, []);
 
-  const { evaluatedItems, activeCount, expiringTodayCount, expiringSoonCount } = useMemo(() => {
-    let todayCount = 0;
-    let soonCount = 0;
+  const { evaluatedItems, activeCount, expiringSoonCount, expiredCount } = useMemo(() => {
+    let soon = 0;
+    let expired = 0;
 
     const list = items.map((item) => {
       const evaluation = evaluateItemStatus(item.expiryDate, expiringSoonWindowDays);
-      if (evaluation.daysLeft === 0) todayCount++;
-      else if (evaluation.status === 'expiring_soon') soonCount++;
+      if (evaluation.status === 'expired') expired++;
+      else if (evaluation.status === 'expiring_soon' || evaluation.daysLeft <= expiringSoonWindowDays) soon++;
       return { item, evaluation };
     });
 
     return {
       evaluatedItems: list,
       activeCount: items.length,
-      expiringTodayCount: todayCount,
-      expiringSoonCount: soonCount,
+      expiringSoonCount: soon,
+      expiredCount: expired,
     };
   }, [items, expiringSoonWindowDays]);
 
-  // Priority sorted items for the dashboard
-  const expiringSoonList = useMemo(() => {
+  // Priority sorted items for the dashboard (expiring soonest first)
+  const priorityList = useMemo(() => {
     return evaluatedItems
       .filter((i) => i.evaluation.status === 'expiring_soon' || i.evaluation.status === 'expired')
       .sort((a, b) => a.evaluation.daysLeft - b.evaluation.daysLeft);
@@ -104,7 +117,10 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: Math.max(insets.top, 16) + 8, paddingBottom: insets.bottom + 90 },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -115,38 +131,70 @@ export default function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Header Bar with Dateora Emblem */}
+        {/* Top Header Bar */}
         <View style={styles.topHeader}>
           <View style={styles.headerLeft}>
             <View style={styles.brandingRow}>
               <DateoraLogo size={24} />
               <Text style={[styles.brandNameMini, { color: theme.primary }]}>Dateora</Text>
             </View>
-            <View style={styles.greetingRow}>
-              <Text style={[styles.greetingText, { color: theme.text }]}>{greeting}, Tushal</Text>
-              <Text style={styles.waveEmoji}>👋</Text>
+            <Text style={[styles.greetingText, { color: theme.text }]}>{greeting}</Text>
+            <View style={styles.dateRow}>
+              <CalendarBlank size={14} color={theme.textSecondary} />
+              <Text style={[styles.dateText, { color: theme.textSecondary }]}>{formattedToday}</Text>
             </View>
-            <Text style={[styles.subGreeting, { color: theme.textSecondary }]}>Keep your items fresh</Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.bellButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[
+              styles.bellButton,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.xs,
+            ]}
             onPress={() => router.push('/(tabs)/history')}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
+            accessibilityLabel="Notifications"
           >
             <Bell size={20} color={theme.text} />
-            {expiringTodayCount + expiringSoonCount > 0 && (
-              <View style={[styles.bellBadge, { backgroundColor: theme.danger }]} />
+            {expiringSoonCount + expiredCount > 0 && (
+              <View style={[styles.bellBadge, { backgroundColor: theme.status.expired.dot }]} />
             )}
           </TouchableOpacity>
         </View>
 
+        {/* Notification Permission Warning Banner */}
+        {!notificationsEnabled && (
+          <TouchableOpacity
+            style={[
+              styles.permissionBanner,
+              { backgroundColor: theme.status.expiring.bg, borderColor: theme.status.expiring.border },
+              shadows.xs,
+            ]}
+            onPress={() => router.push('/(tabs)/settings')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.permissionBannerLeft}>
+              <WarningCircle size={18} color={theme.status.expiring.color} weight="duotone" />
+              <Text style={[styles.permissionBannerText, { color: theme.status.expiring.color }]}>
+                Reminders are disabled. Tap to enable alerts in Settings.
+              </Text>
+            </View>
+            <CaretRight size={14} color={theme.status.expiring.color} weight="bold" />
+          </TouchableOpacity>
+        )}
+
         {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Search size={18} color={theme.textMuted} style={styles.searchIcon} />
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            shadows.xs,
+          ]}
+        >
+          <MagnifyingGlass size={18} color={theme.textMuted} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search items, medicines, dairy..."
+            placeholder="Search items, medicines, groceries..."
             placeholderTextColor={theme.textMuted}
             value={localSearch}
             onChangeText={setLocalSearch}
@@ -155,199 +203,217 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Visual Hero Banner Card */}
-        <View
-          style={[
-            styles.heroBanner,
-            {
-              backgroundColor: isDark ? 'rgba(22, 163, 74, 0.12)' : '#F0FDF4',
-              borderColor: isDark ? 'rgba(34, 197, 94, 0.25)' : '#DCFCE7',
-            },
-          ]}
-        >
-          <View style={styles.heroBannerTextCol}>
-            <View
-              style={[
-                styles.heroBannerBadge,
-                { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7' },
-              ]}
-            >
-              <Sparkles size={12} color={theme.primary} />
-              <Text style={[styles.heroBannerBadgeText, { color: theme.primary }]}>
-                Stay Fresh
-              </Text>
+        {/* 3 Stats Overview Cards with Phosphor Duotone Icons */}
+        <View style={styles.statsRow}>
+          {/* Total Active */}
+          <TouchableOpacity
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.xs,
+            ]}
+            onPress={() => handleStatPress('all')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.statIconBox, { backgroundColor: theme.primarySubtle }]}>
+              <Package size={20} color={theme.primary} weight="duotone" />
             </View>
-            <Text style={[styles.heroBannerTitle, { color: theme.text }]}>
-              Zero Food Waste
+            <Text style={[styles.statNumber, { color: theme.text }]}>{activeCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Active</Text>
+          </TouchableOpacity>
+
+          {/* Expiring Soon */}
+          <TouchableOpacity
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.xs,
+            ]}
+            onPress={() => handleStatPress('expiring_soon')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.statIconBox, { backgroundColor: theme.status.expiring.bg }]}>
+              <Clock size={20} color={theme.status.expiring.color} weight="duotone" />
+            </View>
+            <Text style={[styles.statNumber, { color: theme.status.expiring.color }]}>
+              {expiringSoonCount}
             </Text>
-            <Text style={[styles.heroBannerSubtitle, { color: theme.textSecondary }]}>
-              Keep items fresh & get timely smart alarms.
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Expiring</Text>
+          </TouchableOpacity>
+
+          {/* Expired */}
+          <TouchableOpacity
+            style={[
+              styles.statCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.xs,
+            ]}
+            onPress={() => handleStatPress('expired')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.statIconBox, { backgroundColor: theme.status.expired.bg }]}>
+              <WarningCircle size={20} color={theme.status.expired.color} weight="duotone" />
+            </View>
+            <Text style={[styles.statNumber, { color: theme.status.expired.color }]}>
+              {expiredCount}
             </Text>
-          </View>
-          <Image
-            source={require('../../assets/illustrations/groceries_hero.png')}
-            style={styles.heroBannerImage}
-            resizeMode="contain"
-          />
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Expired</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Quick Categories Bar */}
+        {/* Categories Pills with Phosphor Duotone Icons inside 10% Tinted Chips */}
         <View style={styles.categoriesSection}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesScroll}
           >
-            {POPULAR_CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: isDark ? cat.bgColorDark : cat.bgColorLight,
-                    borderColor: isDark ? cat.borderColorDark : cat.borderColorLight,
-                  },
-                ]}
-                onPress={() => handleCategoryPress(cat.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.categoryChipEmoji}>{cat.emoji}</Text>
-                <Text style={[styles.categoryChipText, { color: isDark ? '#FFFFFF' : cat.color }]}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {POPULAR_CATEGORIES.map((cat) => {
+              const IconComp = cat.icon;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                    shadows.xs,
+                  ]}
+                  onPress={() => handleCategoryPress(cat.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.chipIconBubble, { backgroundColor: cat.bgColor }]}>
+                    <IconComp size={16} color={cat.color} weight="duotone" />
+                  </View>
+                  <Text style={[styles.categoryChipText, { color: theme.text }]}>{cat.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
-        {/* Metric Cards Grid (2 Column Clean Cards matching Reference Board) */}
-        <View style={styles.metricsRow}>
-          {/* Expiring Today */}
-          <TouchableOpacity
-            style={[styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            onPress={() => handleStatPress('expiring_soon')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.metricHeaderRow}>
-              <View style={[styles.metricIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2' }]}>
-                <Clock size={18} color="#EF4444" />
-              </View>
-              <Text style={[styles.metricNumber, { color: '#EF4444' }]}>{expiringTodayCount}</Text>
-            </View>
-            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Expiring Today</Text>
-          </TouchableOpacity>
-
-          {/* Active Items */}
-          <TouchableOpacity
-            style={[styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            onPress={() => handleStatPress('all')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.metricHeaderRow}>
-              <View style={[styles.metricIconCircle, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#DCFCE7' }]}>
-                <Package size={18} color={theme.primary} />
-              </View>
-              <Text style={[styles.metricNumber, { color: theme.primary }]}>{activeCount}</Text>
-            </View>
-            <Text style={[styles.metricLabel, { color: theme.textSecondary }]}>Active Items</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Actions Row: Add & Scan */}
-        <View style={styles.quickActionsRow}>
-          <TouchableOpacity
-            style={[styles.primaryActionBtn, { backgroundColor: theme.primary }]}
-            onPress={() => router.push('/add-item')}
-            activeOpacity={0.85}
-          >
-            <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
-            <Text style={styles.primaryActionBtnText}>Add Item</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.secondaryActionBtn,
-              {
-                backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : '#DCFCE7',
-                borderColor: isDark ? 'rgba(34, 197, 94, 0.25)' : '#BBF7D0',
-              },
-            ]}
-            onPress={() => router.push('/add-item')}
-            activeOpacity={0.85}
-          >
-            <Camera size={18} color={theme.primary} />
-            <Text style={[styles.secondaryActionBtnText, { color: theme.primary }]}>Scan Barcode</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Expiring Soon Section */}
+        {/* Urgent / Expiring Soon List — Hero Focus */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiring Soon</Text>
-          <TouchableOpacity onPress={() => handleStatPress('expiring_soon')}>
-            <Text style={[styles.viewAllText, { color: theme.primary }]}>View All</Text>
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Attention Needed</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+              Items that require your immediate action
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => handleStatPress('expiring_soon')}
+            style={styles.viewAllBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={[styles.viewAllText, { color: theme.primary }]}>View all</Text>
+            <CaretRight size={14} color={theme.primary} weight="bold" />
           </TouchableOpacity>
         </View>
 
-        {/* Items List or Fresh Empty State */}
-        {expiringSoonList.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {activeCount === 0 ? (
+          <View
+            style={[
+              styles.emptyBasketCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.sm,
+            ]}
+          >
             <Image
-              source={require('../../assets/illustrations/shield_hero.png')}
-              style={styles.emptyIllustration}
+              source={require('../../assets/illustrations/empty_basket.png')}
+              style={styles.emptyBasketImage}
               resizeMode="contain"
             />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>All items are fresh!</Text>
-            <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-              Nothing is expiring soon. Track new groceries or household items to stay notified.
+            <Text style={[styles.emptyBasketTitle, { color: theme.text }]}>No items tracked yet</Text>
+            <Text style={[styles.emptyBasketSubtitle, { color: theme.textSecondary }]}>
+              Add groceries, medicines, or cosmetics to get notified before they expire.
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyAddBtn, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/add-item')}
+              activeOpacity={0.88}
+            >
+              <Plus size={16} color="#FFFFFF" weight="bold" />
+              <Text style={styles.emptyAddBtnText}>Add your first item</Text>
+            </TouchableOpacity>
+          </View>
+        ) : priorityList.length === 0 ? (
+          <View
+            style={[
+              styles.peaceOfMindCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              shadows.sm,
+            ]}
+          >
+            <View style={[styles.peaceIconCircle, { backgroundColor: theme.status.safe.bg }]}>
+              <ShieldCheck size={32} color={theme.status.safe.color} weight="duotone" />
+            </View>
+            <Text style={[styles.peaceTitle, { color: theme.text }]}>All items are fresh & safe!</Text>
+            <Text style={[styles.peaceSubtitle, { color: theme.textSecondary }]}>
+              No items expiring in the next {expiringSoonWindowDays} days. Dateora will alert you before anything expires.
             </Text>
           </View>
         ) : (
           <View style={styles.itemsList}>
-            {expiringSoonList.slice(0, 5).map(({ item, evaluation }) => {
-              const isExpired = evaluation.status === 'expired';
-              const isToday = evaluation.daysLeft === 0;
-
+            {priorityList.slice(0, 6).map(({ item, evaluation }) => {
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  style={[
+                    styles.itemCard,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    shadows.xs,
+                  ]}
                   onPress={() => router.push(`/item/${item.id}`)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                 >
-                  <CategoryBadge category={item.category} size="md" />
+                  {item.photoUri ? (
+                    <Image source={{ uri: item.photoUri }} style={styles.itemPhotoThumb} resizeMode="cover" />
+                  ) : (
+                    <CategoryBadge category={item.category} size="md" />
+                  )}
 
                   <View style={styles.itemInfo}>
                     <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
                       {item.name}
                     </Text>
                     <View style={styles.itemMetaRow}>
-                      <Text style={[styles.itemCategoryTag, { color: theme.primary }]}>
+                      <Text style={[styles.itemCategoryTag, { color: theme.textSecondary }]}>
                         {item.category}
                       </Text>
-                      {item.location && (
-                        <View style={styles.locationChip}>
-                          <MapPin size={10} color={theme.textMuted} />
-                          <Text style={[styles.locationChipText, { color: theme.textMuted }]}>
-                            {item.location}
-                          </Text>
-                        </View>
-                      )}
+                      {item.location ? (
+                        <>
+                          <Text style={[styles.metaDot, { color: theme.textMuted }]}>•</Text>
+                          <View style={styles.locationChip}>
+                            <MapPin size={12} color={theme.textMuted} weight="bold" />
+                            <Text style={[styles.locationChipText, { color: theme.textSecondary }]}>
+                              {item.location}
+                            </Text>
+                          </View>
+                        </>
+                      ) : null}
                     </View>
-                    <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
-                      {isExpired ? 'Expired' : isToday ? 'Expires today' : evaluation.relativeText}
-                    </Text>
                   </View>
 
-                  <StatusPill
-                    daysLeft={evaluation.daysLeft}
-                    status={evaluation.status}
-                  />
+                  <StatusPill daysLeft={evaluation.daysLeft} status={evaluation.status} />
                 </TouchableOpacity>
               );
             })}
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add Item Button with Brand Gradient / Primary Blue */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: theme.primary }, shadows.glow]}
+        onPress={() => router.push('/add-item')}
+        activeOpacity={0.88}
+        accessibilityLabel="Add New Item"
+      >
+        <Plus size={20} color="#FFFFFF" weight="bold" />
+        <Text style={styles.fabText}>Add Item</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -357,15 +423,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 16,
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 18,
-    marginTop: 4,
+    marginBottom: 16,
   },
   headerLeft: {
     flex: 1,
@@ -373,30 +437,28 @@ const styles = StyleSheet.create({
   brandingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginBottom: 4,
   },
   brandNameMini: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.3,
   },
-  greetingRow: {
+  greetingText: {
+    fontSize: 28,
+    lineHeight: 36,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  greetingText: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  waveEmoji: {
-    fontSize: 20,
-  },
-  subGreeting: {
-    fontSize: 14,
+    gap: 5,
     marginTop: 2,
+  },
+  dateText: {
+    fontSize: 12,
     fontWeight: '500',
   },
   bellButton: {
@@ -430,55 +492,44 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     height: '100%',
   },
-  heroBanner: {
+  statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
     borderRadius: 20,
     borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  heroBannerTextCol: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  heroBannerBadge: {
-    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 9999,
-    marginBottom: 6,
+    justifyContent: 'center',
   },
-  heroBannerBadgeText: {
-    fontSize: 11,
+  statIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    lineHeight: 28,
     fontWeight: '700',
-  },
-  heroBannerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
     letterSpacing: -0.3,
-    marginBottom: 4,
   },
-  heroBannerSubtitle: {
+  statLabel: {
     fontSize: 12,
-    lineHeight: 16,
     fontWeight: '500',
-  },
-  heroBannerImage: {
-    width: 86,
-    height: 86,
-    flexShrink: 0,
+    marginTop: 2,
   },
   categoriesSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   categoriesScroll: {
     gap: 8,
@@ -487,110 +538,76 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
     borderWidth: 1,
   },
-  categoryChipEmoji: {
-    fontSize: 15,
+  chipIconBubble: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryChipText: {
     fontSize: 13,
-    fontWeight: '700',
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  metricCard: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-    minWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  metricHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  metricIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metricNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  metricLabel: {
-    fontSize: 13,
     fontWeight: '600',
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-  primaryActionBtn: {
-    flex: 1.2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 50,
-    borderRadius: 14,
-    gap: 6,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  primaryActionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  secondaryActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 6,
-  },
-  secondaryActionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+    paddingRight: 4,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
+    alignItems: 'flex-end',
+    marginBottom: 12,
     paddingHorizontal: 2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '600',
     letterSpacing: -0.3,
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  viewAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+  },
+  peaceOfMindCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  peaceIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  peaceTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  peaceSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   itemsList: {
     gap: 10,
@@ -598,15 +615,15 @@ const styles = StyleSheet.create({
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     padding: 12,
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+  },
+  itemPhotoThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   itemInfo: {
     flex: 1,
@@ -614,73 +631,109 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
+    letterSpacing: -0.2,
   },
   itemMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 3,
+    gap: 5,
   },
   itemCategoryTag: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     textTransform: 'capitalize',
+  },
+  metaDot: {
+    fontSize: 12,
   },
   locationChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
   },
   locationChipText: {
     fontSize: 11,
     fontWeight: '500',
   },
-  itemSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 14,
+    minHeight: 52,
   },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 9999,
-    flexShrink: 0,
+  fabText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
-  statusPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  emptyCard: {
-    borderRadius: 16,
+  permissionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  },
-  emptyIllustration: {
-    width: 96,
-    height: 96,
-    marginBottom: 12,
-  },
-  emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 14,
   },
-  emptyTitle: {
-    fontSize: 17,
+  permissionBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    paddingRight: 8,
+  },
+  permissionBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  emptyBasketCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
+  emptyBasketImage: {
+    width: 140,
+    height: 120,
+    marginBottom: 16,
+  },
+  emptyBasketTitle: {
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
     textAlign: 'center',
+  },
+  emptyBasketSubtitle: {
+    fontSize: 13,
     lineHeight: 18,
-    paddingHorizontal: 12,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyAddBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

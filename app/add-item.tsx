@@ -11,6 +11,7 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../src/theme';
@@ -29,9 +30,15 @@ import {
   X,
   Sparkles,
   Search,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react-native';
 import { CATEGORY_VISUALS, DEFAULT_CATEGORY_VISUAL } from '../src/theme/categoryVisuals';
 import { lookupBarcode, SAMPLE_BARCODES } from '../src/services/barcodeService';
+import { DatePickerModal } from '../src/components/DatePickerModal';
+import { pickImageFromCamera, pickImageFromGallery } from '../src/services/imagePickerService';
+import { useSettingsStore } from '../src/stores/useSettingsStore';
+import { analyzeProductImageWithGemini } from '../src/services/aiVisionService';
 
 const CATEGORY_TILES = [
   CATEGORY_VISUALS.groceries,
@@ -96,7 +103,102 @@ export default function AddItemScreen() {
   const [isLookingUpBarcode, setIsLookingUpBarcode] = useState(false);
 
   const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [isCalendarModalVisible, setIsCalendarModalVisible] = useState(false);
+  const [isAiScanning, setIsAiScanning] = useState(false);
+
+  const geminiApiKey = useSettingsStore((s) => s.geminiApiKey);
+
+  const handleScanWithAi = async (uriToScan?: string) => {
+    const targetUri = uriToScan || photoUri;
+    if (!targetUri) {
+      Alert.alert('No Photo', 'Please take a photo or choose an image first.');
+      return;
+    }
+
+    if (!geminiApiKey || !geminiApiKey.trim()) {
+      if (Platform.OS === 'web') {
+        const go = window.confirm(
+          'Gemini API Key Required: Would you like to go to Settings to add your free Google Gemini API key?'
+        );
+        if (go) router.push('/(tabs)/settings');
+      } else {
+        Alert.alert(
+          'Gemini API Key Required',
+          'Please configure your 100% free Gemini API key in Settings to use the AI Vision Scanner.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => router.push('/(tabs)/settings'),
+            },
+          ]
+        );
+      }
+      return;
+    }
+
+    setIsAiScanning(true);
+    try {
+      const result = await analyzeProductImageWithGemini(targetUri, geminiApiKey);
+      setName(result.name);
+      setCategory(result.category);
+      setExpiryDate(result.expiryDate);
+      if (result.quantity) setQuantity(String(result.quantity));
+      if (result.unit) setUnit(result.unit);
+      if (result.location) setLocation(result.location);
+      if (result.notes) {
+        setNotes((prev) => (prev ? `${prev} • ${result.notes}` : result.notes || ''));
+      }
+
+      if (Platform.OS === 'web') {
+        alert(`✨ AI Auto-Filled!\nProduct: ${result.name}\nExpiry Date: ${result.expiryDate}`);
+      } else {
+        Alert.alert(
+          '✨ AI Auto-Filled!',
+          `Product: ${result.name}\nCategory: ${result.category}\nExpiry: ${result.expiryDate}${result.notes ? `\n\nNotes: ${result.notes}` : ''}`
+        );
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Could not analyze image with AI';
+      Alert.alert('AI Scan Failed', msg);
+    } finally {
+      setIsAiScanning(false);
+    }
+  };
+
+  const handleCaptureCamera = async () => {
+    try {
+      const uri = await pickImageFromCamera();
+      if (uri) {
+        setPhotoUri(uri);
+        setIsPhotoModalVisible(false);
+        if (geminiApiKey && geminiApiKey.trim()) {
+          handleScanWithAi(uri);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not access camera';
+      Alert.alert('Camera Error', msg);
+    }
+  };
+
+  const handlePickGallery = async () => {
+    try {
+      const uri = await pickImageFromGallery();
+      if (uri) {
+        setPhotoUri(uri);
+        setIsPhotoModalVisible(false);
+        if (geminiApiKey && geminiApiKey.trim()) {
+          handleScanWithAi(uri);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not access photo library';
+      Alert.alert('Gallery Error', msg);
+    }
+  };
 
   const handleScannerPress = (type: 'barcode' | 'camera') => {
     if (type === 'barcode') {
@@ -176,6 +278,7 @@ export default function AddItemScreen() {
         name: name.trim(),
         category,
         expiryDate,
+        photoUri: photoUri || null,
         reminderOffsets,
         quantity: quantity ? parseFloat(quantity) : null,
         unit: unit.trim() || null,
@@ -230,12 +333,17 @@ export default function AddItemScreen() {
             onPress={() => handleScannerPress('camera')}
             activeOpacity={0.7}
           >
-            <View style={[styles.quickIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-              <Camera size={22} color="#10B981" />
+            <View style={[styles.quickIconCircle, { backgroundColor: 'rgba(59, 107, 255, 0.12)' }]}>
+              <Sparkles size={22} color={theme.primary} />
             </View>
             <View style={styles.quickTextCol}>
-              <Text style={[styles.quickTitle, { color: theme.text }]}>Take Photo</Text>
-              <Text style={[styles.quickSubtitle, { color: theme.textSecondary }]}>Use camera to identify</Text>
+              <View style={styles.quickTitleRow}>
+                <Text style={[styles.quickTitle, { color: theme.text }]}>AI Camera Scan</Text>
+                <View style={[styles.miniAiTag, { backgroundColor: 'rgba(34, 197, 139, 0.14)' }]}>
+                  <Text style={styles.miniAiTagText}>AI</Text>
+                </View>
+              </View>
+              <Text style={[styles.quickSubtitle, { color: theme.textSecondary }]}>Photo to auto-fill expiry</Text>
             </View>
             <ChevronRight size={18} color={theme.textMuted} />
           </TouchableOpacity>
@@ -301,6 +409,38 @@ export default function AddItemScreen() {
 
         {/* Form Fields Card */}
         <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {/* Photo Preview if attached */}
+          {photoUri && (
+            <View style={[styles.photoPreviewCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+              <Image source={{ uri: photoUri }} style={styles.photoPreviewImg} />
+              <View style={styles.photoPreviewInfo}>
+                <Text style={[styles.photoPreviewTitle, { color: theme.text }]}>Photo attached</Text>
+                <TouchableOpacity
+                  style={[styles.aiAutoFillBadgeBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => handleScanWithAi(photoUri)}
+                  disabled={isAiScanning}
+                  activeOpacity={0.8}
+                >
+                  {isAiScanning ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Sparkles size={12} color="#FFFFFF" />
+                      <Text style={styles.aiAutoFillBadgeText}>Auto-Fill with AI</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={[styles.photoRemoveBtn, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}
+                onPress={() => setPhotoUri(null)}
+                activeOpacity={0.7}
+              >
+                <Trash2 size={16} color={theme.danger} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Item Name */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.inputLabel, { color: theme.text }]}>Item Name *</Text>
@@ -354,15 +494,35 @@ export default function AddItemScreen() {
               )}
             </View>
 
-            <TextInput
-              style={[
-                styles.textInput,
-                { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text },
-              ]}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.textMuted}
-              value={expiryDate}
-              onChangeText={setExpiryDate}
+            <View style={styles.dateInputRow}>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.text, flex: 1 },
+                ]}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.textMuted}
+                value={expiryDate}
+                onChangeText={setExpiryDate}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.calendarPickerBtn,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                ]}
+                onPress={() => setIsCalendarModalVisible(true)}
+                activeOpacity={0.7}
+                accessibilityLabel="Choose date from calendar"
+              >
+                <Calendar size={18} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <DatePickerModal
+              visible={isCalendarModalVisible}
+              selectedDate={expiryDate}
+              onClose={() => setIsCalendarModalVisible(false)}
+              onSelectDate={(date) => setExpiryDate(date)}
             />
 
             {/* Quick Presets matching reference board */}
@@ -658,6 +818,36 @@ export default function AddItemScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Real Camera & Gallery Options */}
+            <View style={styles.realPhotoButtonsRow}>
+              <TouchableOpacity
+                style={[styles.realPhotoBtn, { backgroundColor: theme.primary }]}
+                onPress={handleCaptureCamera}
+                activeOpacity={0.8}
+              >
+                <Camera size={18} color="#FFFFFF" />
+                <Text style={styles.realPhotoBtnText}>Take Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.realPhotoBtn,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, borderWidth: 1 },
+                ]}
+                onPress={handlePickGallery}
+                activeOpacity={0.8}
+              >
+                <ImageIcon size={18} color={theme.text} />
+                <Text style={[styles.realPhotoBtnText, { color: theme.text }]}>From Gallery</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalDividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              <Text style={[styles.modalDividerText, { color: theme.textMuted }]}>OR TEST OCR PRESETS</Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+            </View>
+
             {/* Simulation Preview Card */}
             <View style={[styles.ocrDemoBox, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
               <Sparkles size={24} color={theme.primary} />
@@ -754,10 +944,25 @@ const styles = StyleSheet.create({
   quickTextCol: {
     flex: 1,
   },
+  quickTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
   quickTitle: {
     fontSize: 15,
     fontWeight: '700',
-    marginBottom: 2,
+  },
+  miniAiTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  miniAiTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#16A34A',
   },
   quickSubtitle: {
     fontSize: 12,
@@ -855,6 +1060,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     fontSize: 15,
+  },
+  dateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  calendarPickerBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notesInput: {
     minHeight: 80,
@@ -1052,5 +1270,81 @@ const styles = StyleSheet.create({
   ocrSampleText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  photoPreviewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    marginBottom: 6,
+  },
+  photoPreviewImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+  },
+  photoPreviewInfo: {
+    flex: 1,
+  },
+  photoPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  aiAutoFillBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  aiAutoFillBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  photoPreviewSubtitle: {
+    fontSize: 12,
+  },
+  photoRemoveBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  realPhotoButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  realPhotoBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 46,
+    borderRadius: 12,
+    gap: 8,
+  },
+  realPhotoBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
+  },
+  modalDividerText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
 });

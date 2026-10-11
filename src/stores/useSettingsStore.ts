@@ -36,6 +36,7 @@ interface SettingsState extends AppSettings {
   setDailyNotificationTime: (time: string) => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<void>;
   setHasCompletedOnboarding: (completed: boolean) => Promise<void>;
+  setGeminiApiKey: (key: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -54,6 +55,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           dailyNotificationTime: web.dailyNotificationTime || DEFAULT_SETTINGS.dailyNotificationTime,
           hasCompletedOnboarding: web.hasCompletedOnboarding ?? DEFAULT_SETTINGS.hasCompletedOnboarding,
           notificationsEnabled: web.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
+          geminiApiKey: web.geminiApiKey || DEFAULT_SETTINGS.geminiApiKey,
           isLoaded: true,
         });
         return;
@@ -76,6 +78,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         dailyNotificationTime: settingsMap['dailyNotificationTime'] || DEFAULT_SETTINGS.dailyNotificationTime,
         hasCompletedOnboarding: settingsMap['hasCompletedOnboarding'] === 'true',
         notificationsEnabled: settingsMap['notificationsEnabled'] !== 'false',
+        geminiApiKey: settingsMap['geminiApiKey'] || DEFAULT_SETTINGS.geminiApiKey,
         isLoaded: true,
       });
     } catch {
@@ -159,5 +162,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       .insert(appSettingsTable)
       .values({ key: 'hasCompletedOnboarding', value: completed.toString() })
       .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: completed.toString() } });
+  },
+
+  setGeminiApiKey: async (key: string) => {
+    const trimmed = key.trim();
+    set({ geminiApiKey: trimmed });
+    const { db } = getDatabase();
+    if (!db) {
+      saveWebSetting('geminiApiKey', trimmed);
+      return;
+    }
+    await db
+      .insert(appSettingsTable)
+      .values({ key: 'geminiApiKey', value: trimmed })
+      .onConflictDoUpdate({ target: appSettingsTable.key, set: { value: trimmed } });
   },
 }));

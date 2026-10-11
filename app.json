@@ -6,9 +6,10 @@
     "scheme": "dateora",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "backgroundColor": "#080B11",
+      "image": "./assets/splash-icon.png",
+      "backgroundColor": "#F6F7FF",
       "resizeMode": "contain"
     },
     "ios": {
@@ -17,7 +18,7 @@
     "android": {
       "package": "com.dateora.app",
       "adaptiveIcon": {
-        "backgroundColor": "#080B11",
+        "backgroundColor": "#3B6BFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,7 +38,15 @@
       "expo-router",
       "expo-sqlite",
       "expo-sharing",
-      "expo-document-picker"
+      "expo-document-picker",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you set an item picture.",
+          "cameraPermission": "The app uses camera to take pictures of your groceries and medicines."
+        }
+      ]
     ]
   }
 }

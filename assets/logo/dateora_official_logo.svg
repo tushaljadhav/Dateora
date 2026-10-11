@@ -1,0 +1,35 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brand Gradient: 135deg from vibrant blue #3B6BFF to deep violet #7C5CFF -->
+    <linearGradient id="dateoraBg" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#3566FF"/>
+      <stop offset="45%" stopColor="#4A65FF"/>
+      <stop offset="100%" stopColor="#7E54FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Canvas Tile -->
+  <rect width="1024" height="1024" rx="230" fill="url(#dateoraBg)"/>
+
+  <!-- Open Clock Arc (approx 290 degree clockwise arc with rounded caps) -->
+  <!-- Center at (480, 535), radius 220, stroke 58 -->
+  <!-- Sweeps from ~18 deg clockwise around to -38 deg -->
+  <path
+    d="M 689 603 A 220 220 0 1 1 653 399"
+    stroke="#FFFFFF"
+    stroke-width="58"
+    stroke-linecap="round"
+  />
+
+  <!-- Bold Affirmative Checkmark Caught-in-Time -->
+  <path
+    d="M 428 506 L 500 578 L 652 426"
+    stroke="#FFFFFF"
+    stroke-width="72"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Luminous Alert Beacon / Notification Aura Dot -->
+  <circle cx="722" cy="286" r="64" fill="#FF5858"/>
+</svg>

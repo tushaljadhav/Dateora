@@ -1,11 +1,17 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useTheme } from '../../src/theme';
-import { Home, Package, Calendar, History, Settings } from 'lucide-react-native';
+import {
+  HouseSimple,
+  Package,
+  Calendar,
+  ClockCounterClockwise,
+  Gear,
+} from 'phosphor-react-native';
 
 export default function TabLayout() {
-  const { theme } = useTheme();
+  const { theme, shadows } = useTheme();
 
   return (
     <Tabs
@@ -16,14 +22,10 @@ export default function TabLayout() {
           backgroundColor: theme.tabBarBackground,
           borderTopColor: theme.tabBarBorder,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 68,
+          height: Platform.OS === 'ios' ? 88 : 66,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          paddingTop: 6,
-          elevation: 4,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.03,
-          shadowRadius: 6,
+          paddingTop: 8,
+          ...shadows.xs,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -41,6 +43,7 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '700',
           fontSize: 17,
+          letterSpacing: -0.2,
         },
       }}
     >
@@ -49,8 +52,12 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <Home color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          tabBarIcon: ({ focused }) => (
+            <HouseSimple
+              color={focused ? theme.primary : theme.textMuted}
+              size={24}
+              weight={focused ? 'fill' : 'regular'}
+            />
           ),
         }}
       />
@@ -59,8 +66,12 @@ export default function TabLayout() {
         options={{
           title: 'Items',
           headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <Package color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          tabBarIcon: ({ focused }) => (
+            <Package
+              color={focused ? theme.primary : theme.textMuted}
+              size={24}
+              weight={focused ? 'fill' : 'regular'}
+            />
           ),
         }}
       />
@@ -69,8 +80,12 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           headerTitle: 'Expiry Calendar',
-          tabBarIcon: ({ color, focused }) => (
-            <Calendar color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          tabBarIcon: ({ focused }) => (
+            <Calendar
+              color={focused ? theme.primary : theme.textMuted}
+              size={24}
+              weight={focused ? 'fill' : 'regular'}
+            />
           ),
         }}
       />
@@ -79,8 +94,12 @@ export default function TabLayout() {
         options={{
           title: 'History',
           headerTitle: 'History & Archive',
-          tabBarIcon: ({ color, focused }) => (
-            <History color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          tabBarIcon: ({ focused }) => (
+            <ClockCounterClockwise
+              color={focused ? theme.primary : theme.textMuted}
+              size={24}
+              weight={focused ? 'fill' : 'regular'}
+            />
           ),
         }}
       />
@@ -89,8 +108,12 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           headerTitle: 'Settings',
-          tabBarIcon: ({ color, focused }) => (
-            <Settings color={color} size={22} strokeWidth={focused ? 2.5 : 1.8} />
+          tabBarIcon: ({ focused }) => (
+            <Gear
+              color={focused ? theme.primary : theme.textMuted}
+              size={24}
+              weight={focused ? 'fill' : 'regular'}
+            />
           ),
         }}
       />
