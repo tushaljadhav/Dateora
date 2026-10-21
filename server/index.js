@@ -3,13 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load .env from project root
+// Load .env from project root if present (no mandatory MYSQL_* env variables needed)
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
-
-const { initializeMySQL } = require('./db');
-const itemRoutes = require('./routes/items');
-const settingsRoutes = require('./routes/settings');
-const syncRoutes = require('./routes/sync');
 
 const app = express();
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3001;
@@ -77,7 +72,7 @@ app.get('/', (req, res) => {
       <div class="card">
         <div class="badge">● Server Live & Operational</div>
         <h1>Dateora API Server</h1>
-        <p>Production backend for Dateora Mobile App. Connected to MySQL database.</p>
+        <p>Standalone API backend for Dateora Mobile App. Running in lightweight database-free mode.</p>
         <a class="btn" href="/api/health">Check /api/health</a>
       </div>
     </body>
@@ -89,17 +84,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Routes ───
-app.use('/api/items', itemRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/sync', syncRoutes);
+// ─── Future Phase 2 AI Scan Proxy Route (Placeholder) ───
+// PLACEHOLDER: Future /api/ai/scan route will be mounted here in Phase 2
+// app.use('/api/ai/scan', aiScanRoutes);
+
+// ─── Disabled Cloud Sync Routes (v1: No Auth) ───
+// Cloud sync routes and remote MySQL database initialization are disabled in v1.
+// Preserved under server/_disabled_sync/ for re-enabling with user auth + login.
+// app.use('/api/items', itemRoutes);
+// app.use('/api/settings', settingsRoutes);
+// app.use('/api/sync', syncRoutes);
 
 // ─── Start server ───
-async function start() {
+function start() {
   try {
-    await initializeMySQL();
-    console.log('✅ MySQL connected and tables initialized');
-
     app.listen(PORT, () => {
       console.log(`🚀 Dateora API server running on http://localhost:${PORT}`);
     });
