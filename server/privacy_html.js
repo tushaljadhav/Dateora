@@ -1,5 +1,5 @@
 // ─── Dateora Official Public Privacy Policy (Google Play Console Compliant) ───
-// Fully satisfies Google Play Developer Policy Center: User Data, Permissions, Third-Party SDKs, and Data Deletion.
+// Professional, corporate, clean design matching Stripe / Apple / Linear standards.
 
 function renderPrivacyPolicyHtml() {
   return `<!DOCTYPE html>
@@ -8,341 +8,497 @@ function renderPrivacyPolicyHtml() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — Dateora Smart Expiry Tracker</title>
-  <meta name="description" content="Official Privacy Policy for Dateora: Smart Expiry Tracker. Learn how your data, camera permissions, and privacy are protected.">
+  <meta name="description" content="Official Privacy Policy for Dateora: Smart Expiry Tracker. Clear, transparent data practices and Google Play compliance.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090e17;
-      --surface: #111a2e;
-      --surface-card: #15223c;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-accent: rgba(16, 185, 129, 0.25);
-      --primary: #10b981;
-      --primary-light: #34d399;
-      --primary-glow: rgba(16, 185, 129, 0.15);
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --badge-bg: rgba(16, 185, 129, 0.12);
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --primary: #059669;
+      --primary-dark: #047857;
+      --primary-soft: #ecfdf5;
+      --primary-border: #a7f3d0;
+      --text-main: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
     }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
+
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
-      color: var(--text);
+      color: var(--text-body);
       line-height: 1.7;
-      padding: 0 16px 80px;
+      padding-bottom: 80px;
       -webkit-font-smoothing: antialiased;
     }
-    .container {
-      max-width: 860px;
-      margin: 0 auto;
-    }
-    header {
-      padding: 48px 0 32px;
-      text-align: center;
+
+    /* Top Navigation Bar */
+    .top-nav {
+      background: #ffffff;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 40px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
     }
-    .brand-pill {
+
+    .nav-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .nav-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    .nav-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: var(--badge-bg);
-      color: var(--primary-light);
-      border: 1px solid var(--border-accent);
-      padding: 6px 16px;
-      border-radius: 9999px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      margin-bottom: 16px;
+      gap: 6px;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
     }
-    .brand-pill span {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--primary);
-      display: inline-block;
-      box-shadow: 0 0 8px var(--primary);
+
+    /* Main Container */
+    .main-wrap {
+      max-width: 900px;
+      margin: 36px auto 0;
+      padding: 0 24px;
     }
-    h1 {
-      font-size: 2.4rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #ffffff 40%, var(--primary-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .meta {
-      color: var(--text-muted);
-      font-size: 0.92rem;
-    }
-    .highlights-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 40px;
-    }
-    .highlight-card {
-      background: var(--surface);
+
+    /* Header Section */
+    .doc-header {
+      background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 20px;
-      transition: transform 0.2s, border-color 0.2s;
+      padding: 40px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
     }
-    .highlight-card:hover {
-      border-color: var(--primary);
-      transform: translateY(-2px);
-    }
-    .highlight-icon {
-      font-size: 1.5rem;
-      margin-bottom: 8px;
+
+    .doc-header .tag {
       display: inline-block;
-    }
-    .highlight-title {
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
       font-weight: 700;
-      font-size: 1.05rem;
-      color: #fff;
-      margin-bottom: 4px;
+      letter-spacing: 0.02em;
+      margin-bottom: 16px;
     }
-    .highlight-desc {
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin-bottom: 14px;
+    }
+
+    .doc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .doc-meta strong {
+      color: var(--text-main);
+    }
+
+    /* Key Guarantees Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .summary-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .summary-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 14px;
+    }
+
+    .summary-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .summary-desc {
       font-size: 0.88rem;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.55;
     }
-    .content-section {
-      background: var(--surface);
+
+    /* Content Cards */
+    .section-card {
+      background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
-      margin-bottom: 24px;
+      border-radius: 16px;
+      padding: 36px 40px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
     }
+
     h2 {
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 14px;
+      font-size: 1.28rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    h2 .section-num {
+
+    h2 .num {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--primary-glow);
-      color: var(--primary-light);
-      border: 1px solid var(--border-accent);
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 800;
+      width: 26px;
+      height: 26px;
+      background: #f1f5f9;
+      color: var(--primary-dark);
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
     }
+
     p {
-      color: var(--text-muted);
-      font-size: 0.96rem;
+      color: var(--text-body);
+      font-size: 0.95rem;
       margin-bottom: 16px;
+      line-height: 1.7;
     }
+
     p:last-child {
       margin-bottom: 0;
     }
+
     strong {
-      color: #f1f5f9;
+      color: var(--text-main);
       font-weight: 600;
     }
+
     ul {
-      margin-left: 20px;
-      margin-bottom: 16px;
-      color: var(--text-muted);
-      font-size: 0.95rem;
+      margin: 12px 0 18px 24px;
+      color: var(--text-body);
+      font-size: 0.94rem;
     }
+
     li {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      line-height: 1.6;
     }
-    .badge-tag {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-muted);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-family: monospace;
-      margin-right: 4px;
-    }
-    .callout {
-      background: rgba(16, 185, 129, 0.08);
-      border-left: 3px solid var(--primary);
-      padding: 16px 20px;
-      border-radius: 0 12px 12px 0;
-      margin: 20px 0;
-    }
-    .callout p {
-      color: #e2e8f0;
-      font-size: 0.92rem;
-      margin: 0;
-    }
+
+    /* Tables */
     .table-container {
       overflow-x: auto;
-      margin: 16px 0;
-      border-radius: 12px;
+      margin: 20px 0;
       border: 1px solid var(--border);
+      border-radius: 10px;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
       text-align: left;
     }
-    th, td {
+
+    th {
+      background: #f8fafc;
+      color: var(--text-main);
+      font-weight: 700;
       padding: 12px 16px;
       border-bottom: 1px solid var(--border);
     }
-    th {
-      background: var(--surface-card);
-      color: #fff;
-      font-weight: 700;
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-body);
     }
+
     tr:last-child td {
       border-bottom: none;
     }
-    td {
-      color: var(--text-muted);
+
+    .badge-label {
+      display: inline-block;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      margin-top: 4px;
     }
-    .contact-box {
-      background: linear-gradient(135deg, var(--surface) 0%, var(--surface-card) 100%);
-      border: 1px solid var(--border-accent);
-      border-radius: 16px;
+
+    /* Callout Note */
+    .callout {
+      background: #f0fdf4;
+      border-left: 4px solid var(--primary);
+      padding: 18px 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 22px 0;
+    }
+
+    .callout p {
+      color: #166534;
+      font-size: 0.92rem;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* Contact Details Box */
+    .contact-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       padding: 24px;
-      margin-top: 16px;
+      margin-top: 18px;
     }
-    .contact-box a {
-      color: var(--primary-light);
-      text-decoration: none;
+
+    .contact-card p {
+      margin-bottom: 8px;
+      font-size: 0.92rem;
+    }
+
+    .contact-card a {
+      color: var(--primary);
       font-weight: 600;
+      text-decoration: none;
     }
-    .contact-box a:hover {
+
+    .contact-card a:hover {
       text-decoration: underline;
     }
+
+    /* Footer */
     footer {
-      text-align: center;
-      padding-top: 40px;
-      color: var(--text-dim);
-      font-size: 0.85rem;
+      max-width: 900px;
+      margin: 40px auto 0;
+      padding: 24px 24px 0;
       border-top: 1px solid var(--border);
-      margin-top: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 640px) {
+      .doc-header, .section-card {
+        padding: 24px 20px;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="brand-pill">
-        <span></span> Official Privacy Policy
+
+  <!-- Top Navigation -->
+  <nav class="top-nav">
+    <div class="nav-container">
+      <a href="/" class="nav-brand">
+        <div class="nav-logo">D</div>
+        <span>Dateora</span>
+      </a>
+      <div class="nav-badge">
+        <span>Verified Legal Document</span>
       </div>
+    </div>
+  </nav>
+
+  <main class="main-wrap">
+
+    <!-- Document Header -->
+    <header class="doc-header">
+      <div class="tag">Privacy Policy</div>
       <h1>Dateora Smart Expiry Tracker</h1>
-      <p class="meta">
-        <strong>Effective Date:</strong> October 24, 2026 &bull; 
-        <strong>Application:</strong> Dateora &bull; 
-        <strong>Developer:</strong> Tushal Jadhav
+      <p style="font-size: 1.05rem; color: #475569; margin-bottom: 16px;">
+        Official Privacy Policy and Data Protection Notice for users of Dateora.
       </p>
+      <div class="doc-meta">
+        <div><strong>Effective Date:</strong> October 24, 2026</div>
+        <div><strong>Developer:</strong> Tushal Jadhav</div>
+        <div><strong>Package Name:</strong> com.dateora.dateora</div>
+        <div><strong>Version:</strong> 1.0.0</div>
+      </div>
     </header>
 
-    <div class="highlights-grid">
-      <div class="highlight-card">
-        <div class="highlight-icon">🔒</div>
-        <div class="highlight-title">100% On-Device Data</div>
-        <div class="highlight-desc">All products, expiry dates, quantities, and photos are saved locally in SQLite on your device.</div>
+    <!-- Executive Summary Highlights -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-icon">&#128274;</div>
+        <div class="summary-title">100% On-Device Database</div>
+        <div class="summary-desc">Your groceries, dates, photos, and quantities stay strictly on your phone in local SQLite storage.</div>
       </div>
-      <div class="highlight-card">
-        <div class="highlight-icon">🚫</div>
-        <div class="highlight-title">No Account Needed</div>
-        <div class="highlight-desc">No mandatory signup, no phone numbers, no social logins, and no passwords required.</div>
+      <div class="summary-card">
+        <div class="summary-icon">&#128683;</div>
+        <div class="summary-title">No Account Required</div>
+        <div class="summary-desc">No mandatory login, no email signups, no phone numbers, and no passwords needed to track expiry dates.</div>
       </div>
-      <div class="highlight-card">
-        <div class="highlight-icon">🛡️</div>
-        <div class="highlight-title">Zero Ad Tracking</div>
-        <div class="highlight-desc">We never sell, rent, monetize, or broker your personal grocery or consumption data to third parties.</div>
+      <div class="summary-card">
+        <div class="summary-icon">&#128737;</div>
+        <div class="summary-title">Zero Data Brokering</div>
+        <div class="summary-desc">We never sell, monetize, license, or broker your personal consumption habits to third parties or advertisers.</div>
       </div>
     </div>
 
     <!-- Section 1 -->
-    <div class="content-section">
-      <h2><span class="section-num">1</span> Overview & Commitment</h2>
+    <article class="section-card">
+      <h2><span class="num">1</span> Overview & Architecture Philosophy</h2>
       <p>
-        Welcome to <strong>Dateora</strong> ("we", "our", or "us"). Dateora is an offline-first mobile application designed to help individuals and households track product expiration dates, minimize food waste, and organize groceries, medicines, and household essentials.
+        Dateora ("we", "our", or "the application") is an offline-first mobile utility designed to assist users in tracking household expiration dates, minimizing perishable waste, and organizing food, medicine, and personal care inventory.
       </p>
       <p>
-        Your privacy is our core engineering foundation. Unlike conventional cloud apps that synchronize your entire pantry to a central database, Dateora was architected to ensure that your consumption patterns, medicine habits, and household purchases remain strictly on your own hardware.
+        Most mobile applications stream user inventory to centralized cloud servers. In contrast, Dateora was engineered from day one with an <strong>offline-first local architecture</strong>: your personal buying habits, medicine regimens, and dietary selections remain stored strictly inside the private sandbox storage of your physical device.
       </p>
-    </div>
+    </article>
 
     <!-- Section 2 -->
-    <div class="content-section">
-      <h2><span class="section-num">2</span> Data We Collect & How We Use It</h2>
-      <p>To provide core app functionality, Dateora accesses or processes the following categories of data:</p>
-      
+    <article class="section-card">
+      <h2><span class="num">2</span> Information Collected & Processing Purposes</h2>
+      <p>
+        To provide its core tracking and reminder services, Dateora processes specific data categories as detailed below:
+      </p>
+
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Data Category</th>
-              <th>How It Is Used</th>
-              <th>Storage Location</th>
+              <th>Data Type</th>
+              <th>Specific Elements</th>
+              <th>Processing Purpose</th>
+              <th>Retention & Storage</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Inventory Data</strong><br><span class="badge-tag">Items</span> <span class="badge-tag">Dates</span> <span class="badge-tag">Prices</span></td>
-              <td>Stores your added items, expiry dates, purchase records, categories, and disposal logs.</td>
-              <td><strong>Local Device Only</strong> (Encrypted SQLite Database)</td>
+              <td><strong>Inventory Data</strong></td>
+              <td>Item name, category, expiration date, purchase date, quantity, storage location, user notes.</td>
+              <td>To organize items, display countdown days, calculate waste savings, and trigger notifications.</td>
+              <td><strong>Stored 100% locally</strong> in device SQLite database.</td>
             </tr>
             <tr>
-              <td><strong>Photos & Camera</strong><br><span class="badge-tag">Product Photos</span> <span class="badge-tag">Date Stamp</span></td>
-              <td>Allows you to capture item reference images and scan expiry labels or barcodes.</td>
-              <td><strong>Local App Sandbox</strong> (Internal private storage)</td>
+              <td><strong>Images & Photos</strong></td>
+              <td>Product front photographs, packaging expiry date stamps.</td>
+              <td>To display thumbnail photos in item cards and allow AI date identification.</td>
+              <td><strong>Local device sandbox storage only</strong>. Never published to any public gallery.</td>
             </tr>
             <tr>
-              <td><strong>Barcode Data</strong><br><span class="badge-tag">EAN-13</span> <span class="badge-tag">UPC</span> <span class="badge-tag">QR</span></td>
-              <td>Translates packet barcodes into human-readable product names and categories.</td>
-              <td>Transient (Used only to fill form fields)</td>
+              <td><strong>Barcode Data</strong></td>
+              <td>EAN-13, EAN-8, UPC-A, Code 128 numerical product digits.</td>
+              <td>To retrieve standardized public product names and categories.</td>
+              <td><strong>Transient</strong>. Used only to pre-fill the name field upon scan.</td>
             </tr>
             <tr>
-              <td><strong>Technical Diagnostics</strong><br><span class="badge-tag">Crash Logs</span> <span class="badge-tag">OS Version</span></td>
-              <td>Monitors app stability and resolves device-specific crashes (Optional).</td>
-              <td>Anonymous telemetry via Firebase</td>
+              <td><strong>Technical Diagnostics</strong></td>
+              <td>Device model, Android version, crash logs, aggregate feature usage count.</td>
+              <td>To monitor app stability and fix technical bugs.</td>
+              <td><strong>Anonymous telemetry</strong> via Firebase Analytics (User can opt out anytime in Settings).</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="callout">
-        <p><strong>Strict Promise:</strong> We never scan your private gallery or access photos outside the Dateora camera viewfinder or files you deliberately select.</p>
+        <p><strong>Photo Privacy Guarantee:</strong> Dateora does not index, scan, or access any images in your personal photo library except the specific files you deliberately photograph or select within the app.</p>
       </div>
-    </div>
+    </article>
 
     <!-- Section 3 -->
-    <div class="content-section">
-      <h2><span class="section-num">3</span> Permissions Requested & Justification</h2>
-      <p>Dateora requests specific Android runtime permissions strictly when needed for user-initiated actions:</p>
+    <article class="section-card">
+      <h2><span class="num">3</span> Android Permissions & Justifications</h2>
+      <p>
+        Dateora adheres strictly to the Principle of Least Privilege. We request only runtime permissions strictly required to execute user-initiated actions:
+      </p>
       <ul>
-        <li><strong>CAMERA (<code>android.permission.CAMERA</code>):</strong> Required to scan barcodes and photograph packaging expiry date seals directly within the app.</li>
-        <li><strong>READ_MEDIA_IMAGES / STORAGE:</strong> Required solely if you choose to attach existing product photos from your gallery.</li>
-        <li><strong>POST_NOTIFICATIONS / SCHEDULE_EXACT_ALARM:</strong> Required to deliver timely reminder alerts before items reach their expiration date. Notifications are triggered locally on the device by the operating system clock.</li>
+        <li>
+          <strong>Camera (<code>android.permission.CAMERA</code>):</strong> Requested when you open the Barcode Scanner or tap the camera icon to photograph product packaging. It is never accessed in the background.
+        </li>
+        <li>
+          <strong>Photo Library / Storage Access (<code>READ_MEDIA_IMAGES</code>):</strong> Requested only if you choose to attach an existing product photo from your device storage.
+        </li>
+        <li>
+          <strong>Notifications (<code>POST_NOTIFICATIONS</code>) & Exact Alarms (<code>SCHEDULE_EXACT_ALARM</code>):</strong> Required to schedule local calendar notifications that warn you before items expire. Reminders are triggered by the local operating system clock without external push notification tracking.
+        </li>
       </ul>
-    </div>
+    </article>
 
     <!-- Section 4 -->
-    <div class="content-section">
-      <h2><span class="section-num">4</span> AI Vision Scanning & Third-Party Processors</h2>
+    <article class="section-card">
+      <h2><span class="num">4</span> AI Vision Scanning & Data Protection</h2>
       <p>
         Dateora includes an optional <strong>AI Packaging Vision Auto-Fill</strong> feature powered by Google Gemini Vision.
       </p>
@@ -350,85 +506,95 @@ function renderPrivacyPolicyHtml() {
         When you choose to tap "Scan Packaging with AI":
       </p>
       <ul>
-        <li>Only the specific photo of the product front and date stamp is transmitted via secure HTTPS (TLS 1.3) to the Google Gemini API.</li>
-        <li>The AI processes the image solely in volatile memory to identify the product title, category, and date digits.</li>
-        <li>Google does not use customer images submitted via the API to train foundational AI models.</li>
-        <li>Once the text is extracted and returned to your phone, the session ends. No images are permanently stored on any remote cloud server.</li>
-        <li>If you prefer, you can use Dateora 100% offline via manual entry or barcode scan without ever invoking AI scanning.</li>
+        <li>Only the specific image of the product packaging and date stamp is transmitted via secure HTTPS (TLS 1.3) to the Google Gemini API.</li>
+        <li>The image is processed transiently in volatile server memory solely to recognize product title and date characters.</li>
+        <li>Google does not use images submitted via its API services to train foundational models.</li>
+        <li>Once the extracted product name and date are returned to your phone, the session ends. No photos are permanently stored on remote servers.</li>
+        <li><strong>Offline Choice:</strong> You are never required to use AI scanning. Manual entry and instant barcode scanning remain 100% accessible offline.</li>
       </ul>
-    </div>
+    </article>
 
     <!-- Section 5 -->
-    <div class="content-section">
-      <h2><span class="section-num">5</span> Third-Party Service Providers</h2>
-      <p>We work with trusted industry providers that comply with international privacy standards (GDPR, CCPA):</p>
+    <article class="section-card">
+      <h2><span class="num">5</span> Third-Party Service Providers</h2>
+      <p>
+        We integrate with selected third-party services that comply with global data protection standards (GDPR, CCPA):
+      </p>
       <ul>
-        <li><strong>Google Play Services:</strong> Used for app distribution, updates, and core Android runtime services.</li>
-        <li><strong>Firebase Analytics & Crashlytics (Google LLC):</strong> Collects anonymous aggregated crash reports and basic engagement numbers (e.g. number of items added). No personal names, photos, or barcodes are transmitted. You can disable analytics anytime in <em>Settings &rarr; Privacy</em>.</li>
-        <li><strong>Open Food Facts:</strong> A non-profit open database used for public barcode title resolution. Barcode numbers are queried anonymously without user tracking.</li>
+        <li>
+          <strong>Google Play Services:</strong> Core application delivery, distribution, and in-app updates.
+        </li>
+        <li>
+          <strong>Firebase Analytics & Crashlytics (Google LLC):</strong> Collects non-identifiable, aggregated crash diagnostics and feature event metrics. Users can completely disable analytics via <em>Settings &rarr; Privacy &rarr; Help Improve Dateora</em>.
+        </li>
+        <li>
+          <strong>Open Food Facts:</strong> A non-profit public database queried anonymously with numerical barcode digits (e.g. 8901030383848) to auto-fill grocery names without user tracking.
+        </li>
       </ul>
-    </div>
+    </article>
 
     <!-- Section 6 -->
-    <div class="content-section">
-      <h2><span class="section-num">6</span> Data Retention, Deletion & User Rights</h2>
+    <article class="section-card">
+      <h2><span class="num">6</span> User Rights, Data Control & Deletion</h2>
       <p>
-        Because all your inventory and photos reside locally on your phone, you have absolute ownership and control:
+        Because all your data is stored on your local device, you possess total sovereignty:
       </p>
       <ul>
-        <li><strong>Instant Item Deletion:</strong> Swiping left or tapping delete on any item permanently purges its record and associated image file from disk.</li>
-        <li><strong>Complete Data Wipe:</strong> Navigate to <em>Settings &rarr; Clear All Data</em> to permanently erase all products, history, database tables, and settings in 1 click.</li>
-        <li><strong>App Uninstall:</strong> Uninstalling Dateora via Android System Settings immediately deletes the entire local SQLite database, photo cache, and all application state.</li>
+        <li><strong>Selective Deletion:</strong> You can edit, restore, or permanently delete any item from the inventory list or history screen at any moment.</li>
+        <li><strong>1-Click Complete Wipe:</strong> Go to <em>Settings &rarr; Danger Zone &rarr; Clear All Data</em> to permanently and irrecoverably delete all items, categories, settings, and photos from your storage.</li>
+        <li><strong>Uninstallation:</strong> Deleting the Dateora application via Android Settings automatically and immediately purges the entire SQLite database, photo cache, and all application files.</li>
       </ul>
-    </div>
+    </article>
 
     <!-- Section 7 -->
-    <div class="content-section">
-      <h2><span class="section-num">7</span> Children's Privacy (COPPA & GDPR-K)</h2>
+    <article class="section-card">
+      <h2><span class="num">7</span> Children's Privacy (COPPA & GDPR-K Compliance)</h2>
       <p>
-        Dateora is a general audience utility intended for household inventory management. We do not knowingly collect, solicit, or retain any personally identifiable information from children under the age of 13 (or under 16 in the European Union). If you believe a child has provided us with personal information, please contact us immediately.
+        Dateora is a household utility application intended for general audiences. We do not knowingly solicit, collect, or store personal information from children under the age of 13 (or under 16 in the European Economic Area). If you become aware that a child has provided us with personal information, please contact us and we will promptly address the inquiry.
       </p>
-    </div>
+    </article>
 
     <!-- Section 8 -->
-    <div class="content-section">
-      <h2><span class="section-num">8</span> Security Safeguards</h2>
+    <article class="section-card">
+      <h2><span class="num">8</span> Data Security Standards</h2>
       <p>
-        We employ industry-standard security safeguards to protect your information:
+        We employ industry-standard security practices to safeguard data:
       </p>
       <ul>
-        <li>App Sandbox isolation provided by the Android Linux kernel.</li>
-        <li>Enforced HTTPS/TLS transport for all network communication.</li>
-        <li>No insecure cleartext HTTP traffic allowed (<code>usesCleartextTraffic="false"</code>).</li>
+        <li>Application sandbox isolation enforced by the Android Linux security architecture.</li>
+        <li>Mandatory TLS 1.3 / HTTPS encryption for all external API network requests.</li>
+        <li>Cleartext HTTP traffic is blocked via network security configuration (<code>usesCleartextTraffic="false"</code>).</li>
       </ul>
-    </div>
+    </article>
 
     <!-- Section 9 -->
-    <div class="content-section">
-      <h2><span class="section-num">9</span> Changes to This Privacy Policy</h2>
+    <article class="section-card">
+      <h2><span class="num">9</span> Changes to This Privacy Policy</h2>
       <p>
-        We may update our Privacy Policy from time to time. Any changes will be posted on this page with an updated "Effective Date". We encourage you to review this page periodically. Continued use of Dateora after changes constitute acceptance of the updated policy.
+        We may update this Privacy Policy periodically to reflect enhancements in functionality or regulatory requirements. Any revisions will be published immediately on this URL with an updated "Effective Date". Continued use of Dateora following revisions constitutes your consent to the updated terms.
       </p>
-    </div>
+    </article>
 
     <!-- Section 10 -->
-    <div class="content-section">
-      <h2><span class="section-num">10</span> Contact Us</h2>
+    <article class="section-card">
+      <h2><span class="num">10</span> Contact & Inquiries</h2>
       <p>
-        If you have any questions, suggestions, or data protection inquiries regarding this Privacy Policy or Dateora, please contact us:
+        If you have questions, feedback, or inquiries regarding this Privacy Policy or your data protection rights, please reach out to:
       </p>
-      <div class="contact-box">
+      <div class="contact-card">
         <p><strong>Developer:</strong> Tushal Jadhav</p>
-        <p><strong>App:</strong> Dateora — Smart Expiry Tracker</p>
-        <p><strong>Support & Privacy Email:</strong> <a href="mailto:tushaljadhav.dev@gmail.com">tushaljadhav.dev@gmail.com</a></p>
-        <p><strong>Website:</strong> <a href="https://dateora.onrender.com" target="_blank">https://dateora.onrender.com</a></p>
+        <p><strong>Application:</strong> Dateora — Smart Expiry Tracker</p>
+        <p><strong>Privacy & Support Email:</strong> <a href="mailto:tushaljadhav.dev@gmail.com">tushaljadhav.dev@gmail.com</a></p>
+        <p><strong>Official Web Portal:</strong> <a href="https://dateora.onrender.com" target="_blank">https://dateora.onrender.com</a></p>
       </div>
-    </div>
+    </article>
 
-    <footer>
-      <p>&copy; 2026 Dateora. All rights reserved. Designed with privacy-first offline architecture.</p>
-    </footer>
-  </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Dateora. All rights reserved. Designed with privacy-first offline architecture.</p>
+  </footer>
+
 </body>
 </html>`;
 }

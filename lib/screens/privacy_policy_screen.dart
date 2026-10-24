@@ -8,7 +8,7 @@ import '../theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
 
 /// Official In-App Privacy Policy Screen (Google Play Console Compliant)
-/// Explains On-Device Storage, Permissions, AI Vision processing, and user data rights.
+/// Executive, clean, professional legal document layout.
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
 
@@ -19,68 +19,69 @@ class PrivacyPolicyScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBg : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Privacy Policy'),
+        title: const Text(
+          'Privacy Policy',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        elevation: 0,
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined),
+            icon: const Icon(Icons.share_outlined, size: 20),
             tooltip: 'Share Policy Link',
             onPressed: () {
               Share.share(
-                'Dateora Privacy Policy: $publicPolicyUrl',
-                subject: 'Dateora Official Privacy Policy',
+                'Dateora Official Privacy Policy: $publicPolicyUrl',
+                subject: 'Dateora Privacy Policy',
               );
             },
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.lg),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
         children: [
-          // ─── Header Card ───
-          Container(
+          // ─── Executive Header Card ───
+          AppCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF13231B), const Color(0xFF0F1A15)]
-                    : [const Color(0xFFE8F5E9), const Color(0xFFF1F8E9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(
-                color: AppColors.primaryStrong.withOpacity(isDark ? 0.35 : 0.4),
-                width: 1.2,
-              ),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryStrong.withOpacity(0.15),
-                        shape: BoxShape.circle,
+                        color: AppColors.primaryStrong.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.shield_rounded, color: AppColors.primaryStrong, size: 24),
+                      child: const Center(
+                        child: Text(
+                          'D',
+                          style: TextStyle(
+                            color: AppColors.primaryStrong,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Dateora Privacy Commitment',
-                            style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w800),
+                          const Text(
+                            'Dateora Smart Expiry Tracker',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                           ),
                           Text(
-                            'Effective: October 2026 • Version 1.0.0',
+                            'Official Privacy & Data Protection Policy',
                             style: AppTextStyles.caption.copyWith(
-                              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                              color: isDark ? AppColors.darkTextMuted : const Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -89,66 +90,69 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
                 Text(
-                  'Dateora is built on an offline-first architecture. Your grocery lists, expiry dates, photos, and consumption patterns belong to you and stay on your phone.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    height: 1.5,
-                    color: isDark ? Colors.white70 : const Color(0xFF2E3A33),
+                  'Dateora is built on an offline-first architecture. Your grocery lists, expiry dates, photos, and consumption patterns belong entirely to you and stay on your device.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.55,
+                    color: isDark ? Colors.white70 : const Color(0xFF334155),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _buildPill(Icons.storage_rounded, '100% On-Device DB', isDark),
-                    _buildPill(Icons.person_off_outlined, 'No Account Needed', isDark),
-                    _buildPill(Icons.block_outlined, 'Zero Ads / No Data Selling', isDark),
+                    _buildFeatureChip(Icons.storage_outlined, '100% On-Device DB', isDark),
+                    _buildFeatureChip(Icons.person_off_outlined, 'No Account Needed', isDark),
+                    _buildFeatureChip(Icons.shield_outlined, 'Zero Data Brokering', isDark),
                   ],
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
 
-          // ─── Section 1: Data Storage ───
-          _buildPolicyCard(
-            icon: Icons.smartphone_rounded,
-            title: '1. Local Storage & Zero Cloud Tracking',
+          // ─── Section 1: Local Storage ───
+          _buildLegalCard(
+            sectionNumber: '1',
+            title: 'Overview & On-Device Storage',
             content:
-                'All item names, expiry dates, purchase dates, categories, quantities, and photos you add are saved locally in the secure SQLite database on your device.\n\nNo accounts, passwords, or phone numbers are ever required to use Dateora.',
+                'Dateora is an offline-first mobile application. All items, expiration dates, purchase dates, categories, quantities, and photos are saved locally in the secure SQLite database on your device.\n\nNo mandatory accounts, passwords, email addresses, or phone numbers are ever required.',
             isDark: isDark,
           ),
 
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 2: Permissions ───
-          _buildPolicyCard(
-            icon: Icons.camera_alt_outlined,
-            title: '2. Device Permissions',
+          _buildLegalCard(
+            sectionNumber: '2',
+            title: 'Android Permissions & Justifications',
             content:
-                '• Camera: Used strictly to scan barcodes on packaging and photograph expiration date stamps.\n\n• Storage / Photos: Used only if you choose to pick an existing product photo from your gallery.\n\n• Notifications: Scheduled locally on your device clock to alert you before items expire. No remote push server is involved.',
+                '• Camera (CAMERA): Requested only when scanning barcodes on packaging or capturing an expiration date stamp.\n\n• Photos / Storage: Used solely if you choose to attach an existing product photo from your device storage.\n\n• Notifications (POST_NOTIFICATIONS): Scheduled locally on the operating system clock to warn you before items expire. No remote push server tracking is involved.',
             isDark: isDark,
           ),
 
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 3: AI Vision ───
-          _buildPolicyCard(
-            icon: Icons.auto_awesome_rounded,
-            title: '3. AI Vision Scanning (Google Gemini)',
+          _buildLegalCard(
+            sectionNumber: '3',
+            title: 'AI Vision Scanning & Data Handling',
             content:
-                'When you choose to use the AI packaging scan:\n• Only the selected packaging photo is sent encrypted (HTTPS) to the Google Gemini API to read product and date text.\n• Images are processed transiently in volatile memory and are not stored or used to train public models.\n• You can use Dateora completely without AI via manual entry or barcode scanning anytime.',
+                'When you choose to tap "Scan Packaging with AI":\n• Only the selected packaging photo is sent encrypted (HTTPS/TLS 1.3) to the Google Gemini API to extract text and dates.\n• Images are processed transiently in volatile memory and are not stored or used to train public models.\n• You can use Dateora completely offline via manual entry or barcode scanning without ever using AI scanning.',
             isDark: isDark,
           ),
 
           const SizedBox(height: AppSpacing.md),
 
-          // ─── Section 4: Barcode Scanning ───
-          _buildPolicyCard(
-            icon: Icons.qr_code_scanner_rounded,
-            title: '4. Barcode Lookup (Open Food Facts & AI)',
+          // ─── Section 4: Barcodes ───
+          _buildLegalCard(
+            sectionNumber: '4',
+            title: 'Barcode Lookup (Open Food Facts & AI)',
             content:
                 'Scanning a barcode queries public databases (Open Food Facts or our AI proxy) solely using the numerical code (e.g. 8901030383848) to fetch the public product name and category. No personal identity is attached to barcode queries.',
             isDark: isDark,
@@ -157,20 +161,20 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 5: Analytics ───
-          _buildPolicyCard(
-            icon: Icons.analytics_outlined,
-            title: '5. Anonymous Analytics',
+          _buildLegalCard(
+            sectionNumber: '5',
+            title: 'Anonymous Technical Analytics',
             content:
-                'If enabled in Settings, anonymous technical metrics (app crashes, device model, Android OS version) are collected via Firebase Analytics to help improve app stability.\n\nNo personal names, photos, or barcodes are ever included. You can disable this anytime in Settings.',
+                'If enabled in Settings, anonymous technical metrics (app crashes, device model, Android OS version) are collected via Firebase Analytics to help improve app stability.\n\nNo personal names, photos, or barcodes are ever included. You can disable this anytime via Settings.',
             isDark: isDark,
           ),
 
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 6: Data Deletion ───
-          _buildPolicyCard(
-            icon: Icons.delete_sweep_rounded,
-            title: '6. Data Ownership & Deletion',
+          _buildLegalCard(
+            sectionNumber: '6',
+            title: 'Data Ownership & Deletion Rights',
             content:
                 'You have absolute control over your data:\n• Delete individual items anytime with a swipe.\n• Wipe all data permanently via Settings &rarr; Clear All Data.\n• Uninstalling the app permanently purges all database tables and images from disk.',
             isDark: isDark,
@@ -179,45 +183,48 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 7: Children's Privacy ───
-          _buildPolicyCard(
-            icon: Icons.family_restroom_rounded,
-            title: "7. Children's Privacy (COPPA & GDPR-K)",
+          _buildLegalCard(
+            sectionNumber: '7',
+            title: "Children's Privacy (COPPA Compliance)",
             content:
-                'Dateora does not knowingly collect, solicit, or retain personal data from children under the age of 13 (or 16 in the EU). It is a general audience utility intended for household inventory management.',
+                'Dateora is a household utility application intended for general audiences. We do not knowingly solicit, collect, or store personal information from children under the age of 13 (or under 16 in the European Union).',
             isDark: isDark,
           ),
 
           const SizedBox(height: AppSpacing.md),
 
-          // ─── Section 8: Public Play Console URL ───
+          // ─── Section 8: Google Play Console Live URL ───
           AppCard(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.link_rounded, color: AppColors.primaryStrong, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.public_rounded, color: AppColors.primaryStrong, size: 20),
+                    SizedBox(width: 8),
                     Text(
                       'Google Play Console Web URL',
-                      style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'This official policy is publicly hosted and live for Google Play Console submission at:',
-                  style: TextStyle(fontSize: 12.5, height: 1.4),
+                Text(
+                  'Official live public URL required for Google Play Console submission:',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: isDark ? AppColors.darkTextMuted : const Color(0xFF64748B),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.lightBg,
+                    color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
                     ),
                   ),
                   child: Row(
@@ -227,16 +234,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
                           publicPolicyUrl,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryStrong,
+                            fontWeight: FontWeight.w600,
                             fontFamily: 'monospace',
+                            color: AppColors.primaryStrong,
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.copy_rounded, size: 18),
-                        tooltip: 'Copy Link',
-                        onPressed: () {
+                      InkWell(
+                        onTap: () {
                           Clipboard.setData(const ClipboardData(text: publicPolicyUrl));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -245,6 +250,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
                             ),
                           );
                         },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryStrong.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.copy_rounded, size: 16, color: AppColors.primaryStrong),
+                        ),
                       ),
                     ],
                   ),
@@ -256,11 +269,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
 
           // ─── Section 9: Developer Contact ───
-          _buildPolicyCard(
-            icon: Icons.mail_outline_rounded,
-            title: '8. Developer Contact',
+          _buildLegalCard(
+            sectionNumber: '8',
+            title: 'Developer Contact & Inquiries',
             content:
-                'Developer: Tushal Jadhav\nApplication: Dateora (Smart Expiry Tracker)\nSupport Email: tushaljadhav.dev@gmail.com\nWebsite: https://dateora.onrender.com',
+                'Developer: Tushal Jadhav\nApplication: Dateora — Smart Expiry Tracker\nSupport Email: tushaljadhav.dev@gmail.com\nOfficial Website: https://dateora.onrender.com',
             isDark: isDark,
           ),
 
@@ -270,25 +283,27 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPill(IconData icon, String text, bool isDark) {
+  Widget _buildFeatureChip(IconData icon, String label, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.primaryStrong.withOpacity(0.12),
+        color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.primaryStrong.withOpacity(0.25)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: AppColors.primaryStrong),
+          Icon(icon, size: 13, color: AppColors.primaryStrong),
           const SizedBox(width: 5),
           Text(
-            text,
-            style: const TextStyle(
+            label,
+            style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryStrong,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : const Color(0xFF334155),
             ),
           ),
         ],
@@ -296,8 +311,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPolicyCard({
-    required IconData icon,
+  Widget _buildLegalCard({
+    required String sectionNumber,
     required String title,
     required String content,
     required bool isDark,
@@ -309,12 +324,32 @@ class PrivacyPolicyScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: AppColors.primaryStrong),
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    sectionNumber,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryStrong,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
-                  style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
               ),
             ],
@@ -322,9 +357,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             content,
-            style: AppTextStyles.bodyMedium.copyWith(
-              height: 1.5,
-              fontSize: 13,
+            style: TextStyle(
+              height: 1.55,
+              fontSize: 12.8,
               color: isDark ? AppColors.darkTextMuted : const Color(0xFF475569),
             ),
           ),
