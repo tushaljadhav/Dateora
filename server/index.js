@@ -78,16 +78,26 @@ app.get('/', (req, res) => {
       <div class="card">
         <div class="badge">● Server Live & Operational</div>
         <h1>Dateora API Server</h1>
-        <p>Production API backend with Gemini AI Vision Proxy and Cold-Start Warmup.</p>
-        <a class="btn" href="/api/health">Check /api/health</a>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <a class="btn" href="/api/health">Check /api/health</a>
+          <a class="btn" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399;" href="/privacy">View Privacy Policy</a>
+        </div>
       </div>
     </body>
     </html>
   `);
 });
 
+const { renderPrivacyPolicyHtml } = require('./privacy_html');
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ─── Official Public Privacy Policy (Google Play Console URL) ───
+app.get(['/privacy', '/privacy-policy'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderPrivacyPolicyHtml());
 });
 
 // ─── Gemini AI Vision Proxy Route ───

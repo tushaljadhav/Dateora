@@ -16,6 +16,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
+import 'privacy_policy_screen.dart';
 
 // ignore: constant_identifier_names
 const String PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.dateora.dateora';
@@ -920,6 +921,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   leading: _buildIconBadge(Icons.lock_outline_rounded, isDark),
                   title: const Text('Offline Architecture', style: TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: const Text('All photos, item names & dates stay on your phone.', style: TextStyle(fontSize: 12)),
+                ),
+                Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                  leading: _buildIconBadge(Icons.policy_outlined, isDark),
+                  title: const Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: const Text('Google Play compliant policy • Data & permissions', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                    );
+                  },
                 ),
               ],
             ),
