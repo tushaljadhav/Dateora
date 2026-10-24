@@ -420,10 +420,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
         final errText = e.toString();
         if (errText.contains('SocketException') || errText.contains('Network') || errText.contains('offline')) {
           _showRetryOrManualDialog();
+        } else if (e is AiUnavailableException || errText.contains('not configured on the server')) {
+          _showServerKeyOrLocalKeyDialog();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: AppColors.statusDanger,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               content: Text('AI Scan: $e'),
             ),
           );
@@ -433,6 +437,43 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _scanTimer?.cancel();
       if (mounted) setState(() => _isScanningAi = false);
     }
+  }
+
+  void _showServerKeyOrLocalKeyDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.vpn_key_rounded, color: AppColors.primaryStrong),
+            SizedBox(width: 8),
+            Text('API Key Needed'),
+          ],
+        ),
+        content: const Text(
+          'Render cloud backend par GEMINI_API_KEY set nahi hai.\n\nDirect Google Gemini se instant (1-2s) auto-fill karne ke liye apni free API key yahan daalein, ya Render dashboard mein "GEMINI_API_KEY" environment variable add karein.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryStrong,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showApiKeyBottomSheet();
+            },
+            child: const Text('Add API Key'),
+          ),
+        ],
+      ),
+    );
   }
 
 

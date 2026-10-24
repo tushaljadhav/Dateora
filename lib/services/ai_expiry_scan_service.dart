@@ -187,7 +187,7 @@ class DirectGeminiTransport implements AiTransport {
 
   DirectGeminiTransport({
     required this.apiKey,
-    this.model = 'gemini-1.5-flash',
+    this.model = 'gemini-3.5-flash',
     http.Client? client,
   })  : _client = client ?? http.Client();
 

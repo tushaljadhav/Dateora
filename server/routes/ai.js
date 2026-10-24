@@ -7,9 +7,9 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
 // ─── Configuration from Environment ───
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-const GEMINI_FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-1.5-flash-8b';
+const getGeminiApiKey = () => (process.env.GEMINI_API_KEY || '').trim();
+const getGeminiModel = () => (process.env.GEMINI_MODEL || 'gemini-3.5-flash').trim();
+const getGeminiFallbackModel = () => (process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite').trim();
 const DAILY_SCAN_LIMIT = parseInt(process.env.DAILY_SCAN_LIMIT || '8', 10);
 const GLOBAL_DAILY_SCAN_CAP = parseInt(process.env.GLOBAL_DAILY_SCAN_CAP || '1200', 10);
 
@@ -189,7 +189,7 @@ router.post('/scan', burstLimiter, async (req, res) => {
   }
 
   // 5. Verify Server API Key Configuration
-  const apiKey = GEMINI_API_KEY.trim();
+  const apiKey = getGeminiApiKey();
   if (!apiKey) {
     return res.status(503).json({
       error: 'AI_UNAVAILABLE',
@@ -198,12 +198,14 @@ router.post('/scan', burstLimiter, async (req, res) => {
   }
 
   // 6. Call Gemini API with 1 fallback attempt on 429/5xx
+  const primaryModel = getGeminiModel();
+  const fallbackModel = getGeminiFallbackModel();
   let upstreamResponse = null;
-  let usedModel = GEMINI_MODEL;
+  let usedModel = primaryModel;
 
   try {
     upstreamResponse = await callGeminiApi({
-      model: GEMINI_MODEL,
+      model: primaryModel,
       apiKey,
       prompt,
       images: preparedImages,
@@ -211,11 +213,11 @@ router.post('/scan', burstLimiter, async (req, res) => {
 
     // If 429 or 5xx, try fallback model once
     if (upstreamResponse.status === 429 || upstreamResponse.status >= 500) {
-      if (GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_MODEL) {
-        usedModel = GEMINI_FALLBACK_MODEL;
+      if (fallbackModel && fallbackModel !== primaryModel) {
+        usedModel = fallbackModel;
         try {
           upstreamResponse = await callGeminiApi({
-            model: GEMINI_FALLBACK_MODEL,
+            model: fallbackModel,
             apiKey,
             prompt,
             images: preparedImages,
@@ -226,7 +228,7 @@ router.post('/scan', burstLimiter, async (req, res) => {
       }
     }
   } catch (netErr) {
-    // Network or connection error to Google
+    console.error('❌ Network error contacting Gemini:', netErr.message);
     return res.status(503).json({
       error: 'AI_UNAVAILABLE',
       message: 'Could not reach AI services. Please check your internet connection.',
@@ -235,6 +237,12 @@ router.post('/scan', burstLimiter, async (req, res) => {
 
   if (!upstreamResponse || !upstreamResponse.ok) {
     const status = upstreamResponse ? upstreamResponse.status : 503;
+    let errBody = '';
+    try {
+      errBody = await upstreamResponse.text();
+      console.error(`❌ Upstream Gemini Error [${status}]:`, errBody);
+    } catch (_) {}
+
     if (status === 429) {
       return res.status(429).json({
         error: 'RATE_LIMITED',
