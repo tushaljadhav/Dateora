@@ -11,10 +11,10 @@ echo ANDROID_HOME: %ANDROID_HOME%
 echo ===================================================
 
 cd /d "%SCRIPT_DIR%.."
-if "%GEMINI_API_KEY%"=="" (
-    call flutter build apk --release
+if "%API_BASE_URL%"=="" (
+    call flutter build apk --release --dart-define=API_BASE_URL="https://dateora.onrender.com/api"
 ) else (
-    call flutter build apk --release --dart-define=GEMINI_API_KEY="%GEMINI_API_KEY%"
+    call flutter build apk --release --dart-define=API_BASE_URL="%API_BASE_URL%"
 )
 
 if %ERRORLEVEL% equ 0 (

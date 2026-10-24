@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/settings_provider.dart';
-import '../services/permission_service.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -56,6 +57,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _finish() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     await settings.completeOnboarding();
+    AnalyticsService.instance.logOnboardingCompleted();
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -69,10 +71,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _handleNextOrFinish() async {
+  void _handleNextOrFinish() {
     if (_currentPage == _pages.length - 1) {
-      // Last page: request Camera, Photos, and Notification permissions in one single coordinated flow!
-      await PermissionService.requestAllPermissions();
       _finish();
     } else {
       _pageController.nextPage(
@@ -110,11 +110,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryStrong],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.eco_rounded, color: Colors.white, size: 14),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -133,7 +140,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: TextButton.styleFrom(
                       foregroundColor: theme.colorScheme.onSurface.withOpacity(0.55),
                     ),
-                    child: const Text('Skip'),
+                    child: Text(AppLocalizations.of(context)?.onboardingSkip ?? 'Skip'),
                   ),
                 ],
               ),
@@ -249,8 +256,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   // Button
                   PrimaryButton(
                     text: _currentPage == _pages.length - 1
-                        ? 'Enable Permissions & Get Started'
-                        : 'Continue',
+                        ? (AppLocalizations.of(context)?.onboardingGetStarted ?? 'Get Started')
+                        : (AppLocalizations.of(context)?.onboardingNext ?? 'Continue'),
                     onPressed: _handleNextOrFinish,
                     icon: _currentPage == _pages.length - 1
                         ? Icons.check_circle_outline_rounded

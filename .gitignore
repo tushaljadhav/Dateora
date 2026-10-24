@@ -82,3 +82,8 @@ server/.env
 *.keystore
 key.properties
 **/android/key.properties
+
+# Build artifacts
+*.apk
+Dateora.apk
+*.aab

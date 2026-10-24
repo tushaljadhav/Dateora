@@ -38,6 +38,7 @@ class ItemRepository {
     String? location,
     String? notes,
     List<int>? reminderOffsets,
+    double? price,
     String dailyNotificationTime = '09:00',
   }) async {
     final now = DateTime.now().toIso8601String();
@@ -54,18 +55,21 @@ class ItemRepository {
       reminderOffsets: reminderOffsets ?? [3],
       status: 'active',
       statusChangedAt: null,
+      price: price,
       createdAt: now,
       updatedAt: now,
     );
 
     await _db.insertItem(item);
 
-    // Schedule notifications and persist record
-    final records = await _notifications.scheduleItemReminders(
-      item,
-      dailyNotificationTime: dailyNotificationTime,
-    );
-    await _db.replaceNotifications(item.id, records);
+    // Schedule notifications and persist record (safely caught so DB save is never blocked)
+    try {
+      final records = await _notifications.scheduleItemReminders(
+        item,
+        dailyNotificationTime: dailyNotificationTime,
+      );
+      await _db.replaceNotifications(item.id, records);
+    } catch (_) {}
 
     return item;
   }
@@ -81,18 +85,22 @@ class ItemRepository {
     await _db.updateItem(item);
 
     // Reschedule notifications
-    final records = await _notifications.scheduleItemReminders(
-      item,
-      dailyNotificationTime: dailyNotificationTime,
-    );
-    await _db.replaceNotifications(item.id, records);
+    try {
+      final records = await _notifications.scheduleItemReminders(
+        item,
+        dailyNotificationTime: dailyNotificationTime,
+      );
+      await _db.replaceNotifications(item.id, records);
+    } catch (_) {}
 
     return item;
   }
 
   Future<void> deleteItem(Item item) async {
     await PhotoService.deletePhotoFile(item.photoUri);
-    await _notifications.cancelItemReminders(item);
+    try {
+      await _notifications.cancelItemReminders(item);
+    } catch (_) {}
     await _db.deleteNotificationsForItem(item.id);
     await _db.deleteItem(item.id);
   }
@@ -111,7 +119,9 @@ class ItemRepository {
 
     await _db.updateItem(updated);
     // Cancel active notifications when marked used/disposed
-    await _notifications.cancelItemReminders(item);
+    try {
+      await _notifications.cancelItemReminders(item);
+    } catch (_) {}
     await _db.deleteNotificationsForItem(item.id);
 
     return updated;
@@ -131,11 +141,13 @@ class ItemRepository {
     await _db.updateItem(updated);
 
     // Re-schedule reminders
-    final records = await _notifications.scheduleItemReminders(
-      updated,
-      dailyNotificationTime: dailyNotificationTime,
-    );
-    await _db.replaceNotifications(updated.id, records);
+    try {
+      final records = await _notifications.scheduleItemReminders(
+        updated,
+        dailyNotificationTime: dailyNotificationTime,
+      );
+      await _db.replaceNotifications(updated.id, records);
+    } catch (_) {}
 
     return updated;
   }

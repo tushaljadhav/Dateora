@@ -1,17 +1,23 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load .env from project root if present (no mandatory MYSQL_* env variables needed)
+// Load .env from project root if present
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+
+const { router: aiRoutes } = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3001;
 
-// ─── Middleware ───
+// ─── Security & Standard Middleware ───
+app.use(helmet({
+  contentSecurityPolicy: false, // Allows inline styles in root landing card
+}));
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '6.5mb' }));
 
 // ─── Root & Health check ───
 app.get('/', (req, res) => {
@@ -72,7 +78,7 @@ app.get('/', (req, res) => {
       <div class="card">
         <div class="badge">● Server Live & Operational</div>
         <h1>Dateora API Server</h1>
-        <p>Standalone API backend for Dateora Mobile App. Running in lightweight database-free mode.</p>
+        <p>Production API backend with Gemini AI Vision Proxy and Cold-Start Warmup.</p>
         <a class="btn" href="/api/health">Check /api/health</a>
       </div>
     </body>
@@ -84,9 +90,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Future Phase 2 AI Scan Proxy Route (Placeholder) ───
-// PLACEHOLDER: Future /api/ai/scan route will be mounted here in Phase 2
-// app.use('/api/ai/scan', aiScanRoutes);
+// ─── Gemini AI Vision Proxy Route ───
+app.use('/api/ai', aiRoutes);
 
 // ─── Disabled Cloud Sync Routes (v1: No Auth) ───
 // Cloud sync routes and remote MySQL database initialization are disabled in v1.

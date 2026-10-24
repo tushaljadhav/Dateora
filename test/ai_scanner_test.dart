@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dateora/services/ai_expiry_scan_service.dart';
+import 'package:dateora/services/device_service.dart';
 
 void main() {
   group('1. Hardened parseDateToIso Tests', () {
@@ -166,4 +167,30 @@ void main() {
       expect(masked.contains('AIzaSy'), false);
     });
   });
+
+  group('5. DeviceService & Proxy Scan Limits', () {
+    test('DeviceService generates and persists valid UUID', () async {
+      SharedPreferences.setMockInitialValues({});
+      final id1 = await DeviceService.getDeviceId();
+      expect(id1.isNotEmpty, true);
+      expect(RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(id1), true);
+
+      final id2 = await DeviceService.getDeviceId();
+      expect(id2, id1);
+    });
+
+    test('ScanResult.failed carries errorCode and remainingScans correctly', () {
+      final res = ScanResult.failed(
+        message: 'Aaj ke free scans khatam ho gaye. Kal wapas aao ya manual entry karo.',
+        errorCode: 'RATE_LIMITED',
+        remainingScans: 0,
+      );
+
+      expect(res.isSuccess, false);
+      expect(res.errorCode, 'RATE_LIMITED');
+      expect(res.remainingScans, 0);
+      expect(res.errorMessage, contains('Aaj ke free scans khatam ho gaye'));
+    });
+  });
 }
+

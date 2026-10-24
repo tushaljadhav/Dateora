@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -7,15 +8,19 @@ import '../models/category_model.dart';
 import '../providers/items_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/ai_expiry_scan_service.dart';
+import '../services/analytics_service.dart';
 import '../services/open_food_facts_service.dart';
+import '../services/permission_service.dart';
 import '../services/photo_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
+import '../widgets/app_date_picker_dialog.dart';
 import '../widgets/photo_picker_sheet.dart';
 import '../widgets/primary_button.dart';
+import 'barcode_scanner_screen.dart';
 
 class AddItemScreen extends StatefulWidget {
   final String? initialPhotoPath;
@@ -40,10 +45,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 7));
 
   // Optional fields
+  final _priceController = TextEditingController();
   final _quantityController = TextEditingController();
   final _unitController = TextEditingController();
   final _locationController = TextEditingController();
   final _notesController = TextEditingController();
+
+  String _addedMethod = 'manual'; // 'manual', 'ai_scan', 'barcode'
 
   // Multi-photo support: Front Photo + Date Side Photo
   String? _photoPath;
@@ -52,7 +60,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final Set<int> _reminderOffsets = {3};
   bool _showMoreDetails = false;
   bool _isSaving = false;
+  DateTime? _lastSaveTimestamp;
   bool _isScanningAi = false;
+  String _scanLoadingText = 'Analyzing packaging with AI...';
+  Timer? _scanTimer;
+  int? _remainingScans;
 
   // AI Review State
   ScanResult? _lastScanResult;
@@ -63,6 +75,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   void initState() {
     super.initState();
     _photoPath = widget.initialPhotoPath;
+
+    // Warm up the Render backend container early (fire-and-forget)
+    GeminiExpiryScanService.warmupServer();
 
     _setupFieldChangeListeners();
 
@@ -103,7 +118,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   void dispose() {
+    _scanTimer?.cancel();
     _nameController.dispose();
+    _priceController.dispose();
     _quantityController.dispose();
     _unitController.dispose();
     _locationController.dispose();
@@ -244,10 +261,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
     final consentGranted = await _ensureAiConsent(settings);
     if (!consentGranted) return;
 
-    // 2. Resolve Gemini API Key (handled seamlessly via background)
-    final apiKey = settings.geminiApiKey;
+    _scanTimer?.cancel();
+    setState(() {
+      _isScanningAi = true;
+      _scanLoadingText = 'Analyzing packaging with AI...';
+    });
 
-    setState(() => _isScanningAi = true);
+    // Friendly Render cold-start notification after 8 seconds
+    _scanTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted && _isScanningAi) {
+        setState(() {
+          _scanLoadingText = 'Server jaag raha hai, 30-40 second lag sakte hain...';
+        });
+      }
+    });
 
     try {
       final List<File> imageFiles = [];
@@ -258,11 +285,34 @@ class _AddItemScreenState extends State<AddItemScreen> {
         imageFiles.add(File(_secondaryPhotoPath!));
       }
 
-      final ExpiryScanService scanService = GeminiExpiryScanService(defaultApiKey: apiKey);
-
-      final result = await scanService.scanImages(imageFiles, apiKey: apiKey);
+      final String? userKey = settings.geminiApiKey.isNotEmpty ? settings.geminiApiKey : null;
+      final ExpiryScanService scanService = GeminiExpiryScanService(defaultApiKey: userKey);
+      final result = await scanService.scanImages(imageFiles, apiKey: userKey);
 
       if (!mounted) return;
+
+      if (result.remainingScans != null) {
+        setState(() => _remainingScans = result.remainingScans);
+      }
+
+      // Check for daily scan limit reached
+      if (result.errorCode == 'RATE_LIMITED') {
+        setState(() => _remainingScans = 0);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 5),
+            backgroundColor: AppColors.statusDanger,
+            content: Text('Aaj ke free scans khatam ho gaye. Kal wapas aao ya manual entry karo.'),
+          ),
+        );
+        return;
+      }
+
+      // Check for cold-start timeout or network connectivity issue
+      if (result.errorCode == 'TIMEOUT' || result.errorCode == 'NETWORK') {
+        _showRetryOrManualDialog();
+        return;
+      }
 
       final hasValidDate = result.hasDetectedDate &&
           result.expiryDate != null &&
@@ -272,7 +322,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
           result.productName != 'Scanned Item' &&
           result.productName != 'Product';
 
+      AnalyticsService.instance.logAiScanUsed(success: result.isSuccess);
+
       if (result.isSuccess && (hasValidDate || hasValidProduct)) {
+        _addedMethod = 'ai_scan';
         _takeFormSnapshot();
         await settings.incrementDailyScanCount();
         if (!mounted) return;
@@ -361,12 +414,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     } on SocketException {
-      if (mounted) _promptOfflineQueue();
+      if (mounted) _showRetryOrManualDialog();
     } catch (e) {
       if (mounted) {
         final errText = e.toString();
         if (errText.contains('SocketException') || errText.contains('Network') || errText.contains('offline')) {
-          _promptOfflineQueue();
+          _showRetryOrManualDialog();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -377,98 +430,272 @@ class _AddItemScreenState extends State<AddItemScreen> {
         }
       }
     } finally {
+      _scanTimer?.cancel();
       if (mounted) setState(() => _isScanningAi = false);
     }
   }
 
 
 
-  void _promptOfflineQueue() {
+  void _showApiKeyBottomSheet() {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final keyController = TextEditingController(text: settings.geminiApiKey);
+    bool isTesting = false;
+    String? statusMessage;
+    bool isSuccess = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalCtx, setModalState) {
+          final isDark = Theme.of(modalCtx).brightness == Brightness.dark;
+          final bottomInset = MediaQuery.of(modalCtx).viewInsets.bottom;
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryStrong.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.key_rounded, color: AppColors.primaryStrong, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Google Gemini API Key',
+                            style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Direct fast scan (1-2s) via Google AI Studio',
+                            style: AppTextStyles.caption.copyWith(
+                              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Cloud server sleep ho jane par AI slow hota hai. Google AI Studio se free API key lekar yahan save karein — direct scan 1-2 second mein ho jayega:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: keyController,
+                  decoration: InputDecoration(
+                    hintText: 'AIzaSy...',
+                    labelText: 'Gemini API Key',
+                    prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    suffixIcon: keyController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setModalState(() => keyController.clear()),
+                          )
+                        : null,
+                  ),
+                ),
+                if (statusMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                        size: 16,
+                        color: isSuccess ? AppColors.statusSuccess : AppColors.statusDanger,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          statusMessage!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isSuccess ? AppColors.statusSuccess : AppColors.statusDanger,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: isTesting
+                            ? null
+                            : () async {
+                                final key = keyController.text.trim();
+                                if (key.isEmpty) {
+                                  setModalState(() {
+                                    statusMessage = 'Pehle API key enter karein.';
+                                    isSuccess = false;
+                                  });
+                                  return;
+                                }
+                                setModalState(() {
+                                  isTesting = true;
+                                  statusMessage = 'Testing connection with Google...';
+                                  isSuccess = false;
+                                });
+                                final res = await GeminiExpiryScanService.testApiKey(key);
+                                setModalState(() {
+                                  isTesting = false;
+                                  isSuccess = res['success'] == true;
+                                  statusMessage = res['message']?.toString();
+                                });
+                              },
+                        child: isTesting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Test Key'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryStrong,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () async {
+                          final key = keyController.text.trim();
+                          await settings.setGeminiApiKey(key);
+                          if (!mounted) return;
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.primaryStrong,
+                              content: Text(key.isNotEmpty
+                                  ? 'Gemini API key saved! Scanning now...'
+                                  : 'API key cleared. Using proxy.'),
+                            ),
+                          );
+                          if (key.isNotEmpty && (_photoPath != null || _secondaryPhotoPath != null)) {
+                            _scanExpiryWithAi();
+                          }
+                        },
+                        child: const Text('Save & Apply', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showRetryOrManualDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.wifi_off_rounded, color: AppColors.statusWarning),
+            Icon(Icons.cloud_off_rounded, color: AppColors.statusWarning),
             SizedBox(width: 8),
-            Text('You are Offline'),
+            Text('Scan Timed Out'),
           ],
         ),
         content: const Text(
-          'Dateora could not connect to Gemini AI right now. You can enter details manually, or save this item as "Pending AI Scan" to run when back online.',
+          'Render cloud proxy slow hai ya cold start mein hai. Direct Google Gemini connect karne ke liye apni free API key daal sakte hain (instant 1-2s scan), ya Retry karein.',
+          style: TextStyle(fontSize: 13, height: 1.4),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Enter Manually'),
-          ),
-          ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _notesController.text = '[Pending AI Scan] ${_notesController.text}'.trim();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Item marked as [Pending AI Scan].')),
-              );
+              _showApiKeyBottomSheet();
             },
-            child: const Text('Mark Pending'),
+            child: const Text('Add API Key'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Manual Entry'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryStrong,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _scanExpiryWithAi();
+            },
+            child: const Text('Retry'),
           ),
         ],
       ),
     );
   }
 
+
   Future<void> _showBarcodeLookupDialog() async {
-    final barcodeController = TextEditingController();
-    final barcode = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.qr_code_scanner_rounded, color: AppColors.primaryStrong),
-            SizedBox(width: 8),
-            Text('Barcode Lookup'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter the product barcode numbers from packaging to fetch product info from Open Food Facts.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: barcodeController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'e.g. 8901030383848',
-                labelText: 'Barcode',
-                prefixIcon: Icon(Icons.qr_code, size: 18),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, barcodeController.text.trim()),
-            child: const Text('Lookup'),
-          ),
-        ],
-      ),
+    final barcode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
 
     if (barcode == null || barcode.isEmpty) return;
 
     final info = await OpenFoodFactsService.lookupBarcode(barcode);
+    AnalyticsService.instance.logBarcodeScanUsed(success: info != null);
     if (!mounted) return;
 
     if (info != null) {
+      _addedMethod = 'barcode';
       setState(() {
-        if (info.productName != null && info.productName!.isNotEmpty) {
-          _nameController.text = info.productName!;
+        final fullName = info.displayName;
+        if (fullName.isNotEmpty) {
+          _nameController.text = fullName;
           _aiFilledFields.add('name');
         }
         if (info.category != null && info.category!.isNotEmpty) {
@@ -487,33 +714,22 @@ class _AddItemScreenState extends State<AddItemScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.primaryStrong,
-          content: Text('Found "${info.productName ?? "Product"}" from Open Food Facts!'),
+          content: Text('Found "${info.displayName}" from Open Food Facts!'),
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product barcode not found in database.')),
+        const SnackBar(
+          content: Text('Product not found in Open Food Facts. Please enter details manually.'),
+        ),
       );
     }
   }
 
   Future<void> _selectCustomDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _expiryDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primaryStrong,
-                  onPrimary: Colors.white,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -525,6 +741,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   void _saveItem() async {
+    if (_isSaving) return;
+
+    final now = DateTime.now();
+    if (_lastSaveTimestamp != null && now.difference(_lastSaveTimestamp!).inMilliseconds < 1500) {
+      return;
+    }
+    _lastSaveTimestamp = now;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -536,11 +760,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
       final double? qty = _quantityController.text.trim().isNotEmpty
           ? double.tryParse(_quantityController.text.trim())
           : null;
+      final double? price = _priceController.text.trim().isNotEmpty
+          ? double.tryParse(_priceController.text.trim())
+          : null;
 
       await itemsProvider.addItem(
         name: _nameController.text.trim(),
         category: _selectedCategory,
         expiryDate: dateStr,
+        price: price,
         quantity: qty,
         unit: _unitController.text.trim().isNotEmpty ? _unitController.text.trim() : null,
         location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
@@ -549,18 +777,34 @@ class _AddItemScreenState extends State<AddItemScreen> {
         reminderOffsets: _reminderOffsets.toList(),
       );
 
+      AnalyticsService.instance.logItemAdded(
+        method: _addedMethod,
+        category: _selectedCategory,
+      );
+
+      // Contextual notification permission prompt after saving the first item
+      if (mounted) {
+        await PermissionService.checkAndPromptNotificationPermissionAfterFirstSave(context);
+      }
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.primaryStrong,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Added "${_nameController.text.trim()}" successfully!',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    'Added "${_nameController.text.trim()}" successfully!',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -570,7 +814,16 @@ class _AddItemScreenState extends State<AddItemScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding item: $e')),
+          SnackBar(
+            backgroundColor: AppColors.statusDanger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            content: Text(
+              'Error adding item: $e',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         );
       }
     } finally {
@@ -607,6 +860,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
             vertical: AppSpacing.sm,
           ),
           children: [
+            // ─── 0. Quick Barcode Auto-Fill (Prominent Top Option) ───
+            _buildBarcodeTopCard(isDark),
+
+            const SizedBox(height: AppSpacing.md),
+
             // ─── 1. Dedicated Two Photos Section (1 Product Image + 1 Dates Image) ───
             _buildTwoPhotosSection(isDark),
 
@@ -643,7 +901,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
               text: 'Save Product',
               icon: Icons.check_circle_rounded,
               isLoading: _isSaving,
-              onPressed: _saveItem,
+              onPressed: _isSaving ? null : _saveItem,
             ),
 
             const SizedBox(height: AppSpacing.xxl),
@@ -781,6 +1039,30 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
           const SizedBox(height: 12),
 
+          // Daily Scans Remaining Counter badge
+          if (_remainingScans != null) ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.bolt_rounded, size: 14, color: AppColors.primaryStrong),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$_remainingScans scans left today',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           // Action Button: Auto-Fill with AI Scan
           SizedBox(
             width: double.infinity,
@@ -804,7 +1086,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   : const Icon(Icons.auto_awesome_rounded, size: 18),
               label: Text(
                 _isScanningAi
-                    ? 'Analyzing with Gemini AI...'
+                    ? _scanLoadingText
                     : (hasAnyPhoto ? 'Scan Attached Photos with AI' : 'Take Photos & Auto-Fill with AI'),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
@@ -1017,8 +1299,108 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
+  Widget _buildBarcodeTopCard(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E2D24), const Color(0xFF16221B)]
+              : [const Color(0xFFE8F5E9), const Color(0xFFF1F8E9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: AppColors.primaryStrong.withOpacity(isDark ? 0.35 : 0.4),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryStrong.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          onTap: _showBarcodeLookupDialog,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryStrong.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: AppColors.primaryStrong,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quick Barcode Scan',
+                        style: AppTextStyles.titleSmall.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Scan packet barcode for instant name & details',
+                        style: AppTextStyles.caption.copyWith(
+                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryStrong,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.camera_alt_outlined, size: 13, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'Scan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNameInputCard(bool isDark) {
-    final isAi = _aiFilledFields.contains('name');
+    final isFilled = _aiFilledFields.contains('name');
+    final isBarcode = _addedMethod == 'barcode';
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -1027,37 +1409,83 @@ class _AddItemScreenState extends State<AddItemScreen> {
           Row(
             children: [
               Text('Product Name *', style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800)),
-              if (isAi) ...[
+              if (isFilled) ...[
                 const SizedBox(width: 8),
-                _buildAiSparkleBadge(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryStrong.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.primaryStrong.withOpacity(0.35)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isBarcode ? Icons.qr_code_2_rounded : Icons.auto_awesome_rounded,
+                        size: 13,
+                        color: AppColors.primaryStrong,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isBarcode ? 'Barcode auto-filled' : 'AI auto-filled',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryStrong,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ],
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
+            minLines: 2,
+            maxLines: 4,
+            keyboardType: TextInputType.multiline,
             style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
-              hintText: 'e.g. Amul Milk, Crocin 650, Cetaphil Cleanser',
+              filled: isFilled,
+              fillColor: isFilled
+                  ? (isDark ? const Color(0xFF132A1C) : const Color(0xFFF0FDF4))
+                  : null,
+              hintText: 'e.g. Amul Fresh Cream 250ml, Crocin 650, Cetaphil Cleanser',
               hintStyle: AppTextStyles.caption.copyWith(fontSize: 13),
-              prefixIcon: const Icon(Icons.shopping_bag_outlined, color: AppColors.primaryStrong, size: 20),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: AppColors.primaryStrong),
-                onPressed: _showBarcodeLookupDialog,
+              alignLabelWithHint: true,
+              prefixIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 24),
+                child: Icon(Icons.shopping_bag_outlined, color: AppColors.primaryStrong, size: 20),
+              ),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: AppColors.primaryStrong),
+                  onPressed: _showBarcodeLookupDialog,
+                ),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.button),
-                borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                borderSide: BorderSide(
+                  color: isFilled ? AppColors.primaryStrong : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  width: isFilled ? 1.6 : 1,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.button),
-                borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                borderSide: BorderSide(
+                  color: isFilled ? AppColors.primaryStrong : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  width: isFilled ? 1.6 : 1,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.button),
-                borderSide: const BorderSide(color: AppColors.primaryStrong, width: 1.5),
+                borderSide: const BorderSide(color: AppColors.primaryStrong, width: 2.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Please enter a product name';
@@ -1107,23 +1535,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Clean visual grid of categories
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: CategoryModel.presetCategories.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.3,
-            ),
-            itemBuilder: (context, index) {
-              final cat = CategoryModel.presetCategories[index];
+          // Symmetrical and adaptive category chips with zero truncation
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: CategoryModel.presetCategories.map((cat) {
               final isSelected = _selectedCategory == cat.id;
 
               return InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.button),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 onTap: () {
                   setState(() {
                     _selectedCategory = cat.id;
@@ -1132,42 +1552,39 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? cat.color.withOpacity(0.16)
                         : (isDark ? AppColors.darkSurface : AppColors.lightBg),
-                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                     border: Border.all(
                       color: isSelected ? cat.color : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                      width: isSelected ? 1.6 : 1,
+                      width: isSelected ? 1.5 : 1,
                     ),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         cat.icon,
                         size: 15,
                         color: isSelected ? cat.color : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                       ),
-                      const SizedBox(width: 5),
-                      Flexible(
-                        child: Text(
-                          cat.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                            color: isSelected ? cat.color : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                          ),
+                      const SizedBox(width: 6),
+                      Text(
+                        cat.name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          color: isSelected ? cat.color : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                         ),
                       ),
                     ],
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
         ],
       ),
@@ -1176,14 +1593,32 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   Widget _buildExpiryDateCard(bool isDark) {
     final isAi = _aiFilledFields.contains('date');
-    final formattedDate = DateFormat('dd MMM yyyy (EEE)').format(_expiryDate);
+    final dateFormatted = DateFormat('dd MMM yyyy').format(_expiryDate);
+    final dayOfWeek = DateFormat('EEEE').format(_expiryDate);
     final daysLeft = _expiryDate.difference(DateTime.now()).inDays;
+
+    final Color badgeColor;
+    final String countdownText;
+    if (daysLeft < 0) {
+      badgeColor = AppColors.statusDanger;
+      countdownText = 'Expired ${-daysLeft}d ago';
+    } else if (daysLeft == 0) {
+      badgeColor = AppColors.statusDanger;
+      countdownText = 'Expires today';
+    } else if (daysLeft <= 3) {
+      badgeColor = AppColors.statusWarning;
+      countdownText = '$daysLeft days left';
+    } else {
+      badgeColor = AppColors.statusSafe;
+      countdownText = '$daysLeft days left';
+    }
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row (clean title + AI sparkle badge)
           Row(
             children: [
               Text('Expiry Date *', style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800)),
@@ -1200,24 +1635,27 @@ class _AddItemScreenState extends State<AddItemScreen> {
             onTap: _selectCustomDate,
             borderRadius: BorderRadius.circular(AppRadius.card),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.primarySoft.withOpacity(0.5),
+                color: isDark ? AppColors.darkSurface : const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.primary,
+                  color: isDark ? AppColors.darkBorder : AppColors.primary.withOpacity(0.35),
                   width: 1.2,
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
                       color: AppColors.primaryStrong.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.event_available_rounded, color: AppColors.primaryStrong, size: 22),
+                    child: const Center(
+                      child: Icon(Icons.calendar_month_rounded, color: AppColors.primaryStrong, size: 22),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1225,106 +1663,135 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          formattedDate,
-                          style: AppTextStyles.titleSmall.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.primaryDark,
+                          dateFormatted,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : AppColors.primaryDark,
+                            letterSpacing: -0.2,
                           ),
+                          maxLines: 1,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          daysLeft > 0
-                              ? 'Expires in $daysLeft days'
-                              : (daysLeft == 0 ? 'Expires today' : 'Expired ${-daysLeft} days ago'),
-                          style: AppTextStyles.caption.copyWith(
-                            fontSize: 11,
-                            color: daysLeft <= 3 ? AppColors.statusWarning : AppColors.statusSuccess,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              dayOfWeek,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withOpacity(0.14),
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                countdownText,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: badgeColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkCard : Colors.white,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    ),
-                    child: Text(
-                      'Change',
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryStrong,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : AppColors.primary.withOpacity(0.3),
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.edit_calendar_rounded,
+                      size: 18,
+                      color: AppColors.primaryStrong,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           const SizedBox(height: 10),
 
-          // Clean Quick Date Preset Buttons
-          Row(
-            children: [
-              _buildPresetPill('+3 Days', 3),
-              const SizedBox(width: 6),
-              _buildPresetPill('+1 Wk', 7),
-              const SizedBox(width: 6),
-              _buildPresetPill('+1 Mo', 30),
-              const SizedBox(width: 6),
-              _buildPresetPill('+6 Mo', 180),
-              const SizedBox(width: 6),
-              _buildPresetPill('+1 Yr', 365),
-            ],
+          // Quick Presets Row (+3d, +1w, +1m, +3m, +6m, +1y)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickDateChip('+3 Days', const Duration(days: 3), isDark),
+                const SizedBox(width: 6),
+                _buildQuickDateChip('+1 Week', const Duration(days: 7), isDark),
+                const SizedBox(width: 6),
+                _buildQuickDateChip('+1 Month', const Duration(days: 30), isDark),
+                const SizedBox(width: 6),
+                _buildQuickDateChip('+3 Months', const Duration(days: 90), isDark),
+                const SizedBox(width: 6),
+                _buildQuickDateChip('+6 Months', const Duration(days: 180), isDark),
+                const SizedBox(width: 6),
+                _buildQuickDateChip('+1 Year', const Duration(days: 365), isDark),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPresetPill(String label, int daysFromNow) {
-    final targetDate = DateTime.now().add(Duration(days: daysFromNow));
+  Widget _buildQuickDateChip(String label, Duration duration, bool isDark) {
+    final targetDate = DateTime.now().add(duration);
     final isSelected = _expiryDate.year == targetDate.year &&
         _expiryDate.month == targetDate.month &&
         _expiryDate.day == targetDate.day;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: () {
-          setState(() {
-            _expiryDate = targetDate;
-            _aiFilledFields.remove('date');
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primaryStrong
-                : (isDark ? AppColors.darkSurface : AppColors.lightBg),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(
-              color: isSelected ? AppColors.primaryStrong : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            ),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _expiryDate = targetDate;
+          _aiFilledFields.remove('date');
+        });
+      },
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryStrong.withOpacity(0.16)
+              : (isDark ? AppColors.darkSurface : AppColors.lightBg),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryStrong : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            width: isSelected ? 1.5 : 1,
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected
-                    ? Colors.white
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-              ),
-            ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? AppColors.primaryStrong : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
           ),
         ),
       ),
@@ -1364,6 +1831,24 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Divider(height: 1),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Price (₹) Field
+                  Text(
+                    'Price (₹)',
+                    style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 65 (optional)',
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.md),
 
                   // Quantity & Unit in one row
@@ -1473,6 +1958,40 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
+                  ),
+
+                  // Quick Auto-Suggestion Chips for Notes (tap to fill, zero typing needed)
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      'Keep refrigerated',
+                      'Store in airtight jar',
+                      'Opened on purchase',
+                      'Consume within 5 days',
+                      'Store in dry place',
+                    ].map((sugg) {
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            final current = _notesController.text.trim();
+                            if (current.isEmpty) {
+                              _notesController.text = sugg;
+                            } else if (!current.contains(sugg)) {
+                              _notesController.text = '$current, $sugg';
+                            }
+                          });
+                        },
+                        child: Chip(
+                          labelPadding: EdgeInsets.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          label: Text('+ $sugg', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+                          backgroundColor: isDark ? AppColors.darkSurface : AppColors.primarySoft,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),

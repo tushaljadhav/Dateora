@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
+import '../models/item.dart';
 import '../providers/items_provider.dart';
 import '../services/photo_service.dart';
+import '../services/savings_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
@@ -12,6 +15,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/item_tile.dart';
 import '../widgets/section_header.dart';
 import 'add_item_screen.dart';
+import 'bachat_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final Function(int tabIndex, String? filter) onNavigateTab;
@@ -49,6 +53,11 @@ class HomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final expiringSoon = provider.expiringSoonItems;
+    final l10n = AppLocalizations.of(context);
+
+    final allItems = <Item>[...provider.activeItems, ...provider.historyItems];
+    final now = DateTime.now();
+    final thisMonthSavings = SavingsService.calculateMonthSavings(allItems, year: now.year, month: now.month);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,14 +66,14 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _getGreeting(),
+              l10n != null ? '${l10n.homeGreeting} 👋' : _getGreeting(),
               style: AppTextStyles.caption.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.55),
               ),
             ),
             const SizedBox(height: 2),
             Text(
-              'Dateora',
+              l10n?.appName ?? 'Dateora',
               style: AppTextStyles.titleLarge.copyWith(
                 fontWeight: FontWeight.w800,
               ),
@@ -73,7 +82,7 @@ class HomeScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Smart AI Scanner',
+            tooltip: l10n?.itemAiScanner ?? 'Smart AI Scanner',
             icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.primaryStrong),
             onPressed: () => _launchSmartScanner(context),
           ),
@@ -97,56 +106,91 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   // AI Smart Scanner banner
                   InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    borderRadius: AppRadius.cardRadius,
                     onTap: () => _launchSmartScanner(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                              : [const Color(0xFFEFF6FF), Colors.white],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: AppRadius.cardRadius,
                         border: Border.all(
-                          color: AppColors.primaryStrong.withOpacity(0.25),
+                          color: const Color(0xFF3B82F6).withOpacity(isDark ? 0.35 : 0.25),
                           width: 1.2,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF3B82F6).withOpacity(0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryStrong.withOpacity(0.15),
-                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
                             child: const Icon(
                               Icons.auto_awesome_rounded,
-                              color: AppColors.primaryStrong,
+                              color: Colors.white,
                               size: 20,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Smart AI Scanner',
+                                  l10n?.itemAiScanner ?? 'Smart AI Scanner',
                                   style: AppTextStyles.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14.5,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Snap photo to auto-detect name & expiry date',
-                                  style: AppTextStyles.caption.copyWith(fontSize: 11),
+                                  l10n?.onboardingDesc3 ?? 'Snap photo to auto-detect name & expiry date',
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontSize: 11.5,
+                                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryStrong,
+                              color: const Color(0xFF2563EB),
                               borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -175,7 +219,7 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       _buildStatCard(
                         context,
-                        title: 'Total Items',
+                        title: l10n?.homeActiveItems ?? 'Total Items',
                         count: provider.totalCount,
                         color: AppColors.primaryStrong,
                         bgColor: isDark ? AppColors.darkCard : AppColors.primarySoft,
@@ -185,7 +229,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: AppSpacing.xs),
                       _buildStatCard(
                         context,
-                        title: 'Expiring Soon',
+                        title: l10n?.homeExpiringSoon ?? 'Expiring Soon',
                         count: provider.expiringSoonCount,
                         color: AppColors.statusWarning,
                         bgColor: isDark ? AppColors.darkCard : AppColors.statusWarningBg,
@@ -195,7 +239,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: AppSpacing.xs),
                       _buildStatCard(
                         context,
-                        title: 'Expired',
+                        title: l10n?.homeExpired ?? 'Expired',
                         count: provider.expiredCount,
                         color: AppColors.statusDanger,
                         bgColor: isDark ? AppColors.darkCard : AppColors.statusDangerBg,
@@ -205,13 +249,234 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
 
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Bachat Card (Task 4)
+                  InkWell(
+                    borderRadius: AppRadius.cardRadius,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BachatScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF132E27), const Color(0xFF0F172A)]
+                              : [AppColors.primarySoft, Colors.white],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: AppRadius.cardRadius,
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(isDark ? 0.35 : 0.25),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.08),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.savings_rounded, color: Colors.white, size: 16),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    l10n?.homeBachatTitle ?? 'Bachat Tracker',
+                                    style: AppTextStyles.titleSmall.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primaryStrong,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryStrong.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Details',
+                                      style: AppTextStyles.caption.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primaryStrong,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    const Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.primaryStrong),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.statusSafe.withOpacity(isDark ? 0.15 : 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.statusSafe.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n?.homeBachatSaved ?? 'Saved',
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '₹${thisMonthSavings.savedAmount.toStringAsFixed(0)}',
+                                        style: AppTextStyles.titleMedium.copyWith(
+                                          color: AppColors.statusSafe,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 17,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.statusDanger.withOpacity(isDark ? 0.15 : 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.statusDanger.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n?.homeBachatWasted ?? 'Wasted',
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '₹${thisMonthSavings.wastedAmount.toStringAsFixed(0)}',
+                                        style: AppTextStyles.titleMedium.copyWith(
+                                          color: thisMonthSavings.wastedAmount > 0
+                                              ? AppColors.statusDanger
+                                              : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 17,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryStrong.withOpacity(isDark ? 0.15 : 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.primaryStrong.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n?.bachatItemsUsed ?? 'Used',
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${thisMonthSavings.usedCount}',
+                                        style: AppTextStyles.titleMedium.copyWith(
+                                          color: AppColors.primaryStrong,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 17,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                size: 12,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n?.homeBachatEstimated ?? 'Estimated based on entered prices',
+                                style: AppTextStyles.caption.copyWith(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: AppSpacing.sectionGap),
 
                   // Section Header: Attention Needed
                   SectionHeader(
-                    title: 'Attention Needed',
-                    subtitle: 'Items requiring priority action',
-                    actionText: provider.totalCount > 0 ? 'View All' : null,
+                    title: l10n?.homeExpiringSoonSection ?? 'Attention Needed',
+                    subtitle: l10n?.homeSubtitle ?? 'Items requiring priority action',
+                    actionText: provider.totalCount > 0 ? (l10n?.homeViewAll ?? 'View All') : null,
                     onAction: () => onNavigateTab(1, 'all'),
                   ),
 
@@ -221,10 +486,10 @@ class HomeScreen extends StatelessWidget {
                     EmptyState(
                       imageAsset: 'assets/illustrations/empty_basket.png',
                       icon: Icons.eco_rounded,
-                      title: 'Start Tracking Your Pantry',
-                      message:
+                      title: l10n?.itemsEmptyTitle ?? 'Start Tracking Your Pantry',
+                      message: l10n?.itemsEmptySubtitle ??
                           'Add items from your fridge, bathroom or medicine cabinet to get alerted before they expire.',
-                      buttonText: 'Add First Item',
+                      buttonText: l10n?.homeAddNewItem ?? 'Add First Item',
                       onButtonPressed: () {
                         Navigator.push(
                           context,
@@ -255,12 +520,12 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: AppSpacing.md),
                           Text(
-                            'Everything is fresh!',
+                            l10n?.homeNoExpiringSoon ?? 'Everything is fresh!',
                             style: AppTextStyles.titleSmall,
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'No items are expiring in the upcoming alert window.',
+                            l10n?.homeNoExpiringSoonSubtitle ?? 'No items are expiring in the upcoming alert window.',
                             style: AppTextStyles.caption.copyWith(
                               color: theme.colorScheme.onSurface.withOpacity(0.6),
                             ),
@@ -286,14 +551,20 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: AppCard(
         onTap: onTap,
+        color: isDark ? AppColors.darkCard : color.withOpacity(0.04),
+        border: Border.all(
+          color: color.withOpacity(isDark ? 0.35 : 0.22),
+          width: 1.2,
+        ),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(7),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: bgColor,
                 shape: BoxShape.circle,
@@ -304,7 +575,8 @@ class HomeScreen extends StatelessWidget {
             Text(
               '$count',
               style: AppTextStyles.titleMedium.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
                 color: color,
               ),
             ),
@@ -313,7 +585,7 @@ class HomeScreen extends StatelessWidget {
               title,
               style: AppTextStyles.caption.copyWith(
                 fontSize: 11,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

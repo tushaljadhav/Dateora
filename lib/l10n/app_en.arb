@@ -1,0 +1,236 @@
+{
+  "@@locale": "en",
+  "appName": "Dateora",
+  "appTagline": "Track Expiry Dates Before They Expire",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+  "done": "Done",
+  "close": "Close",
+  "confirm": "Confirm",
+  "retry": "Retry",
+  "error": "Error",
+  "success": "Success",
+  "search": "Search",
+  "clear": "Clear",
+  "notNow": "Not Now",
+  "openSettings": "Open Settings",
+  "submit": "Submit",
+  "required": "Required",
+
+  "navHome": "Home",
+  "navItems": "Items",
+  "navCalendar": "Calendar",
+  "navHistory": "History",
+  "navSettings": "Settings",
+
+  "homeGreeting": "Hello",
+  "homeSubtitle": "Keep tabs on your fresh groceries & essentials",
+  "homeActiveItems": "Active Items",
+  "homeExpiringSoon": "Expiring Soon",
+  "homeExpired": "Expired",
+  "homeSafe": "Safe",
+  "homeBachatTitle": "Bachat Tracker",
+  "homeBachatSaved": "Saved this month",
+  "homeBachatWasted": "Wasted",
+  "homeBachatUsedItems": "items used",
+  "homeBachatEstimated": "Estimated based on entered prices",
+  "homeExpiringSoonSection": "Expiring Soon",
+  "homeViewAll": "View All",
+  "homeNoExpiringSoon": "No products expiring soon!",
+  "homeNoExpiringSoonSubtitle": "Everything is fresh and good to go.",
+  "homeAddNewItem": "Add Item",
+
+  "itemsTitle": "Inventory",
+  "itemsSearchHint": "Search by name or category...",
+  "itemsFilterAll": "All",
+  "itemsFilterExpiringSoon": "Expiring Soon",
+  "itemsFilterExpired": "Expired",
+  "itemsFilterSafe": "Safe",
+  "itemsSortSoonest": "Expiring Soonest",
+  "itemsSortRecentlyAdded": "Recently Added",
+  "itemsSortName": "Name (A-Z)",
+  "itemsEmptyTitle": "No items found",
+  "itemsEmptySubtitle": "Tap the button below to add your first item.",
+  "itemsDeleteConfirmTitle": "Delete Item?",
+  "itemsDeleteConfirmMessage": "Are you sure you want to delete this item? This action cannot be undone.",
+  "itemsMarkUsed": "Mark as Used",
+  "itemsMarkDisposed": "Mark as Disposed",
+
+  "addItemTitle": "Add New Product",
+  "editItemTitle": "Edit Product",
+  "itemSectionBasic": "Basic Details",
+  "itemNameLabel": "Product Name *",
+  "itemNameHint": "e.g. Amul Milk, Crocin 650, Cetaphil",
+  "itemNameRequired": "Please enter a product name",
+  "itemCategoryLabel": "Category *",
+  "itemExpiryDateLabel": "Expiry Date *",
+  "itemPriceLabel": "Price (₹)",
+  "itemPriceHint": "e.g. 65 (optional)",
+  "itemQuantityLabel": "Quantity",
+  "itemQuantityHint": "e.g. 1, 500",
+  "itemUnitLabel": "Unit",
+  "itemUnitHint": "e.g. pack, ml, kg",
+  "itemLocationLabel": "Storage Location",
+  "itemLocationHint": "e.g. Fridge, Pantry shelf, First aid kit",
+  "itemNotesLabel": "Notes",
+  "itemNotesHint": "e.g. Opened on Monday, batch number",
+  "itemRemindersLabel": "Remind me before",
+  "itemReminderSameDay": "Same Day (0 days)",
+  "itemReminder1Day": "1 day before",
+  "itemReminder3Days": "3 days before",
+  "itemReminder7Days": "7 days before",
+  "itemReminder14Days": "14 days before",
+  "itemReminder30Days": "30 days before",
+  "itemSavedSuccess": "Product saved successfully!",
+  "itemAddButton": "Save Product",
+  "itemUpdateButton": "Update Product",
+  "itemAiDetectedBadge": "AI Detected",
+  "itemBarcodeLookup": "Barcode Scanner",
+  "itemAiScanner": "Scan with AI",
+
+  "scannerTitle": "Scan Barcode",
+  "scannerAlignFrame": "Align barcode inside the viewfinder",
+  "scannerManualButton": "Enter barcode manually",
+  "scannerManualDialogTitle": "Enter Barcode",
+  "scannerManualDialogMessage": "Enter the 8 to 13-digit barcode number printed on packaging:",
+  "scannerManualInputHint": "e.g. 8901030383848",
+  "scannerCameraPermissionTitle": "Camera Permission Needed",
+  "scannerCameraPermissionMessage": "Camera permission is needed to scan barcodes directly.",
+  "scannerNotFoundMessage": "Product not found in Open Food Facts. Barcode noted in notes for you.",
+  "scannerFoundMessage": "Found product details from Open Food Facts!",
+
+  "bachatScreenTitle": "Bachat & Savings",
+  "bachatEstimatedNotice": "Estimated savings based on prices you entered. Used items count as saved money; disposed items count as wasted.",
+  "bachatTotalSaved": "Total Saved",
+  "bachatTotalWasted": "Total Wasted",
+  "bachatItemsUsed": "Items Used",
+  "bachatItemsDisposed": "Items Disposed",
+  "bachatMonthlyHistory": "Last 6 Months Breakdown",
+  "bachatShareButton": "Share My Savings",
+  "bachatNetSaved": "Net Saved",
+  "bachatNoData": "No used or disposed items recorded for this month yet.",
+  "bachatShareText": "I saved estimated ₹{amount} with Dateora this month by tracking expiry dates! Never waste groceries again.",
+  "@bachatShareText": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "bachatCardTitle": "My Dateora Bachat",
+  "bachatCardTagline": "Smart Expiry Tracking • Zero Food Waste",
+
+  "calendarTitle": "Expiry Calendar",
+  "calendarNoItemsOnDate": "No items expiring on this day.",
+
+  "historyTitle": "History",
+  "historyEmpty": "No past items",
+  "historyEmptySubtitle": "Items you mark as Used or Disposed will appear here.",
+  "historyUsedBadge": "Used",
+  "historyDisposedBadge": "Disposed",
+  "historyRestore": "Restore to Active",
+  "historyDeletePermanent": "Delete Permanently",
+
+  "settingsTitle": "Settings",
+  "settingsSectionGeneral": "Preferences",
+  "settingsSectionNotifications": "Notifications & Reminders",
+  "settingsSectionPrivacy": "Privacy & Data",
+  "settingsSectionAbout": "About & Community",
+  "settingsTheme": "Theme",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsThemeSystem": "System",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System Default",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageHindi": "हिंदी",
+  "settingsLanguageMarathi": "मराठी",
+  "settingsNotificationsEnable": "Expiry Reminders",
+  "settingsNotificationsSubtitle": "Get offline alerts before items expire",
+  "settingsWeeklySummary": "Weekly Sunday Summary",
+  "settingsWeeklySummarySubtitle": "Weekly overview of items expiring this week at 9:00 AM",
+  "settingsReminderTime": "Daily Alert Time",
+  "settingsDefaultReminder": "Default Reminder Offset",
+  "settingsAnalyticsToggle": "Help improve Dateora",
+  "settingsAnalyticsSubtitle": "Share anonymous usage data to help us fix issues (no names, photos, or private data)",
+  "settingsTellAFriend": "Tell a Friend",
+  "settingsTellAFriendSubtitle": "Share Dateora with family and friends",
+  "settingsExportData": "Backup Data (JSON)",
+  "settingsExportSubtitle": "Export all your tracked items to a file",
+  "settingsImportData": "Restore Data (JSON)",
+  "settingsImportSubtitle": "Import items from a previous backup",
+  "settingsTellAFriendShareText": "Never let groceries or medicines expire again! Track expiry dates with Dateora: {url}",
+  "@settingsTellAFriendShareText": {
+    "placeholders": {
+      "url": { "type": "String" }
+    }
+  },
+  "settingsPermissionsGrant": "Check App Permissions",
+
+  "onboardingTitle1": "Track Expiry Dates",
+  "onboardingDesc1": "Keep all your groceries, medicines, and household items organized in one place.",
+  "onboardingTitle2": "Never Waste Money",
+  "onboardingDesc2": "Get timely reminders 7 days, 3 days, and on the day your products expire.",
+  "onboardingTitle3": "Smart Bachat & AI",
+  "onboardingDesc3": "Scan packaging photos with AI or scan barcodes to auto-fill details in seconds.",
+  "onboardingGetStarted": "Get Started",
+  "onboardingNext": "Next",
+  "onboardingSkip": "Skip",
+
+  "categoryGroceries": "Groceries",
+  "categoryMedicine": "Medicine",
+  "categorySkincare": "Skincare",
+  "categoryDairy": "Dairy & Eggs",
+  "categoryHousehold": "Household",
+  "categoryDocuments": "Documents",
+  "categoryBeverages": "Beverages",
+  "categoryPantry": "Pantry",
+  "categoryCustom": "Custom",
+
+  "statusExpired": "Expired",
+  "statusExpiresToday": "Expires Today",
+  "statusExpiresTomorrow": "Expires Tomorrow",
+  "statusExpiresInDays": "In {days} days",
+  "@statusExpiresInDays": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "statusSafe": "Safe",
+  "statusExpiredDaysAgo": "Expired {days} days ago",
+  "@statusExpiredDaysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "statusExpiredYesterday": "Expired yesterday",
+
+  "notifAlertTitle": "Dateora Expiry Alert",
+  "notifExpiresToday": "{name} expires today.",
+  "@notifExpiresToday": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "notifExpiresTomorrow": "{name} expires tomorrow.",
+  "@notifExpiresTomorrow": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "notifExpiresInDays": "{name} expires in {days} days.",
+  "@notifExpiresInDays": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "days": { "type": "int" }
+    }
+  },
+  "notifWeeklySummaryTitle": "Dateora Weekly Summary",
+  "notifWeeklySummaryBody": "{count} items expire this week. Check them before they go bad!",
+  "@notifWeeklySummaryBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "notifWeeklySummaryZeroBody": "All clear! No items expiring this week. Enjoy your fresh supplies."
+}

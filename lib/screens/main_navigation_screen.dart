@@ -6,6 +6,7 @@ import 'calendar_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
 import 'add_item_screen.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/items_provider.dart';
 import '../theme/app_colors.dart';
 
@@ -45,31 +46,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: screens,
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-        elevation: 3,
-        highlightElevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        onPressed: () {
-          Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (_, __, ___) => const AddItemScreen(),
-              transitionsBuilder: (_, animation, __, child) {
-                return SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 1),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                  child: child,
+      floatingActionButton: (_currentIndex == 0 || _currentIndex == 1)
+          ? FloatingActionButton(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              elevation: 3,
+              highlightElevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const AddItemScreen(),
+                    transitionsBuilder: (_, animation, __, child) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                        child: child,
+                      );
+                    },
+                  ),
                 );
               },
-            ),
-          );
-        },
-        child: const Icon(Icons.add_rounded, size: 28),
-      ),
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -83,31 +86,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Home',
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home_rounded),
+              label: AppLocalizations.of(context)?.navHome ?? 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_outlined),
-              activeIcon: Icon(Icons.inventory_2_rounded),
-              label: 'Items',
+              icon: const Icon(Icons.inventory_2_outlined),
+              activeIcon: const Icon(Icons.inventory_2_rounded),
+              label: AppLocalizations.of(context)?.navItems ?? 'Items',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              activeIcon: Icon(Icons.calendar_month_rounded),
-              label: 'Calendar',
+              icon: const Icon(Icons.calendar_month_outlined),
+              activeIcon: const Icon(Icons.calendar_month_rounded),
+              label: AppLocalizations.of(context)?.navCalendar ?? 'Calendar',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history_rounded),
-              activeIcon: Icon(Icons.history_toggle_off_rounded),
-              label: 'History',
+              icon: const Icon(Icons.history_rounded),
+              activeIcon: const Icon(Icons.history_toggle_off_rounded),
+              label: AppLocalizations.of(context)?.navHistory ?? 'History',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings_rounded),
-              label: 'Settings',
+              icon: const Icon(Icons.settings_outlined),
+              activeIcon: const Icon(Icons.settings_rounded),
+              label: AppLocalizations.of(context)?.navSettings ?? 'Settings',
             ),
           ],
         ),

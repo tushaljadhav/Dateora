@@ -1,17 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/category_model.dart';
 import '../models/item.dart';
+import '../models/status_evaluation.dart';
 import '../providers/items_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
-import '../widgets/category_badge.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/status_pill.dart';
 import 'edit_item_screen.dart';
 
@@ -42,9 +42,18 @@ class ItemDetailsScreen extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(title: const Text('Item Details')),
         body: Center(
-          child: Text(
-            'Item not found or has been removed.',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.lightTextMuted),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.inventory_2_outlined, size: 64, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Item not found or has been removed.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -54,10 +63,19 @@ class ItemDetailsScreen extends StatelessWidget {
     final cat = CategoryModel.getById(item.category);
     final hasPhoto = item.photoUri != null && File(item.photoUri!).existsSync();
 
+    // Format expiry date cleanly
+    DateTime? parsedExpiry;
+    try {
+      parsedExpiry = DateTime.parse(item.expiryDate);
+    } catch (_) {}
+    final formattedExpiry = parsedExpiry != null
+        ? DateFormat('dd MMM yyyy (EEEE)').format(parsedExpiry)
+        : item.expiryDate;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Item Details',
+          'Product Details',
           style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w800),
         ),
         actions: [
@@ -87,218 +105,133 @@ class ItemDetailsScreen extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         children: [
-          // Hero Photo / Visual Card
-          if (hasPhoto)
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                child: Hero(
-                  tag: 'item_photo_${item.id}',
-                  child: Image.file(
-                    File(item.photoUri!),
-                    height: 240,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            )
-          else
-            AppCard(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Center(
-                child: Hero(
-                  tag: 'item_photo_${item.id}',
-                  child: CategoryBadge(categoryId: item.category, size: 84),
-                ),
-              ),
-            ),
+          // 1. Hero Card (Photo or Emerald Gradient Hero)
+          _buildHeroCard(context, item, cat, status, hasPhoto, isDark),
 
           const SizedBox(height: AppSpacing.md),
 
-          // Header Info Card: Name, Category, Status Pill
-          AppCard(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.name,
-                            style: AppTextStyles.titleLarge.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(cat.icon, size: 16, color: cat.color),
-                              const SizedBox(width: 6),
-                              Text(
-                                cat.name,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: isDark
-                                      ? AppColors.darkTextMuted
-                                      : AppColors.lightTextSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    StatusPill(evaluation: status),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          // 2. Expiry & Countdown Metric Capsules
+          _buildExpiryMetricBlock(context, item, status, formattedExpiry, isDark),
 
           const SizedBox(height: AppSpacing.md),
 
-          // Expiry & Countdown Card
-          AppCard(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              children: [
-                _buildInfoRow(
-                  context,
-                  icon: Icons.calendar_month_outlined,
-                  iconColor: AppColors.primaryStrong,
-                  label: 'Expiry Date',
-                  value: item.expiryDate,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Divider(
-                    height: 1,
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  ),
-                ),
-                _buildInfoRow(
-                  context,
-                  icon: Icons.timer_outlined,
-                  iconColor: status.color,
-                  label: 'Countdown',
-                  value: status.relativeText,
-                  valueColor: status.color,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.md),
-
-          // Additional Metadata Card (Quantity, Storage, Reminders, Notes)
-          AppCard(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              children: [
-                if (item.quantity != null) ...[
-                  _buildInfoRow(
-                    context,
-                    icon: Icons.inventory_2_outlined,
-                    iconColor: AppColors.primaryStrong,
-                    label: 'Quantity',
-                    value: '${item.quantity} ${item.unit ?? ''}'.trim(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    child: Divider(
-                      height: 1,
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                ],
-                if (item.location != null && item.location!.isNotEmpty) ...[
-                  _buildInfoRow(
-                    context,
-                    icon: Icons.place_outlined,
-                    iconColor: AppColors.primaryStrong,
-                    label: 'Storage Location',
-                    value: item.location!,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    child: Divider(
-                      height: 1,
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                ],
-                _buildInfoRow(
-                  context,
-                  icon: Icons.notifications_active_outlined,
-                  iconColor: AppColors.primaryStrong,
-                  label: 'Alert Schedule',
-                  value: item.reminderOffsets
-                      .map((o) => o == 0 ? 'On expiry' : '$o days before')
-                      .join(', '),
-                ),
-                if (item.notes != null && item.notes!.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    child: Divider(
-                      height: 1,
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                  _buildInfoRow(
-                    context,
-                    icon: Icons.notes_outlined,
-                    iconColor: AppColors.primaryStrong,
-                    label: 'Notes',
-                    value: item.notes!,
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // 3. Specifications & Metadata Card
+          _buildSpecsCard(context, item, cat, isDark),
 
           const SizedBox(height: AppSpacing.xl),
 
-          // Mark Outcome Actions
+          // 4. Action Buttons
           if (item.isActive) ...[
             Text(
               'Mark Item Outcome',
-              style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+              style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
                 Expanded(
-                  child: _buildActionPill(
-                    context,
-                    label: 'Used',
-                    icon: Icons.check_circle_outline,
-                    onTap: () => _markStatus(context, item!, 'used'),
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withOpacity(0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 20),
+                      label: const Text(
+                        'Mark as Used',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
+                      onPressed: () => _markStatus(context, item!, 'used'),
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: _buildActionPill(
-                    context,
-                    label: 'Disposed',
-                    icon: Icons.delete_sweep_outlined,
-                    isDestructive: true,
-                    onTap: () => _markStatus(context, item!, 'disposed'),
+                  flex: 2,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(
+                        color: AppColors.statusDanger.withOpacity(0.6),
+                        width: 1.2,
+                      ),
+                      backgroundColor: isDark
+                          ? AppColors.statusDanger.withOpacity(0.12)
+                          : AppColors.statusDangerBg,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                    ),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.statusDanger),
+                    label: const Text(
+                      'Disposed',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.statusDanger,
+                        fontSize: 14,
+                      ),
+                    ),
+                    onPressed: () => _markStatus(context, item!, 'disposed'),
                   ),
                 ),
               ],
             ),
           ] else ...[
-            PrimaryButton(
-              text: 'Restore to Active Tracking',
-              icon: Icons.restore_rounded,
-              onPressed: () => _restoreItem(context, item!),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                  ),
+                ),
+                icon: const Icon(Icons.restore_rounded, size: 20),
+                label: const Text(
+                  'Restore to Active Tracking',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+                onPressed: () => _restoreItem(context, item!),
+              ),
             ),
           ],
 
@@ -308,78 +241,669 @@ class ItemDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-    Color? valueColor,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: iconColor),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          label,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
-          ),
-        ),
-        const Spacer(),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w700,
-              color: valueColor ??
-                  (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+  // 1. Hero Card
+  Widget _buildHeroCard(
+    BuildContext context,
+    Item item,
+    CategoryModel cat,
+    StatusEvaluation status,
+    bool hasPhoto,
+    bool isDark,
+  ) {
+    if (hasPhoto) {
+      return Container(
+        height: 240,
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.cardRadius,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: AppRadius.cardRadius,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Hero(
+                tag: 'item_photo_${item.id}',
+                child: Image.file(
+                  File(item.photoUri!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // Top & bottom gradient scrims
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black45,
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black87,
+                    ],
+                    stops: [0.0, 0.25, 0.55, 1.0],
+                  ),
+                ),
+              ),
+              // Top pills: Category badge + Status pill
+              Positioned(
+                top: 12,
+                left: 12,
+                right: 12,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.65),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: Colors.white24, width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(cat.icon, size: 14, color: Colors.white),
+                          const SizedBox(width: 5),
+                          Text(
+                            cat.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    StatusPill(evaluation: status),
+                  ],
+                ),
+              ),
+              // Bottom: Item Name
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 14,
+                child: Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      );
+    }
+
+    // No Photo: Bachat Gradient Hero
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF132E27), const Color(0xFF0F172A)]
+              : [const Color(0xFFEFFDF5), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: AppRadius.cardRadius,
+        border: Border.all(
+          color: AppColors.primary.withOpacity(isDark ? 0.35 : 0.25),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cat.color.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: cat.color.withOpacity(0.3), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(cat.icon, size: 14, color: cat.color),
+                    const SizedBox(width: 5),
+                    Text(
+                      cat.name,
+                      style: TextStyle(
+                        color: cat.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              StatusPill(evaluation: status),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: cat.color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cat.color.withOpacity(0.3), width: 1.2),
+                ),
+                child: Center(
+                  child: Icon(cat.icon, size: 30, color: cat.color),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: AppTextStyles.titleLarge.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildActionPill(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-    bool isDestructive = false,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  // 2. Expiry & Countdown Metric Block
+  Widget _buildExpiryMetricBlock(
+    BuildContext context,
+    Item item,
+    StatusEvaluation status,
+    String formattedExpiry,
+    bool isDark,
+  ) {
+    DateTime? parsed;
+    try {
+      parsed = DateTime.parse(item.expiryDate);
+    } catch (_) {}
+    final cleanDateStr = parsed != null ? DateFormat('dd MMM yyyy').format(parsed) : item.expiryDate;
 
-    return OutlinedButton.icon(
-      icon: Icon(
-        icon,
-        size: 16,
-        color: isDestructive
-            ? AppColors.statusDanger
-            : (isDark ? AppColors.primary : AppColors.primaryStrong),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: AppRadius.cardRadius,
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      label: Text(
-        label,
-        style: AppTextStyles.caption.copyWith(
-          fontWeight: FontWeight.w700,
-          color: isDestructive
-              ? AppColors.statusDanger
-              : (isDark ? AppColors.primary : AppColors.primaryDark),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Left: Expiry Date Box
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : AppColors.primarySoft.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.event_available_rounded, size: 15, color: AppColors.primaryStrong),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Expiry Date',
+                            style: AppTextStyles.caption.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        cleanDateStr,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.primaryDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Right: Countdown Box
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: status.color.withOpacity(isDark ? 0.16 : 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: status.color.withOpacity(0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.hourglass_top_rounded, size: 15, color: status.color),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Remaining',
+                            style: AppTextStyles.caption.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: status.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        status.relativeText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: status.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Day description subtitle
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface.withOpacity(0.6) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 14,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    formattedExpiry,
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 3. Specifications & Metadata Card (Title on top-left, details underneath)
+  Widget _buildSpecsCard(
+    BuildContext context,
+    Item item,
+    CategoryModel cat,
+    bool isDark,
+  ) {
+    final hasPrice = item.price != null;
+    final hasQuantity = item.quantity != null;
+    final hasLocation = item.location != null && item.location!.isNotEmpty;
+    final hasReminders = item.reminderOffsets.isNotEmpty;
+    final hasNotes = item.notes != null && item.notes!.isNotEmpty;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primaryStrong),
+              const SizedBox(width: 6),
+              Text(
+                'Product Details',
+                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Price & Quantity in a balanced Row if both exist
+          if (hasPrice && hasQuantity) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMiniSpecBlock(
+                    isDark: isDark,
+                    icon: Icons.currency_rupee_rounded,
+                    iconColor: AppColors.statusSafe,
+                    iconBgColor: AppColors.statusSafe.withOpacity(0.14),
+                    title: 'Price / Value',
+                    content: Text(
+                      '₹${item.price! % 1 == 0 ? item.price!.toInt() : item.price!.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.statusSafe,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildMiniSpecBlock(
+                    isDark: isDark,
+                    icon: Icons.inventory_2_outlined,
+                    iconColor: const Color(0xFF3B82F6),
+                    iconBgColor: const Color(0xFF3B82F6).withOpacity(0.14),
+                    title: 'Quantity',
+                    content: Text(
+                      '${item.quantity} ${item.unit ?? ''}'.trim(),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            if (hasPrice)
+              _buildFullWidthSpecBlock(
+                isDark: isDark,
+                icon: Icons.currency_rupee_rounded,
+                iconColor: AppColors.statusSafe,
+                iconBgColor: AppColors.statusSafe.withOpacity(0.14),
+                title: 'Price / Value',
+                content: Text(
+                  '₹${item.price! % 1 == 0 ? item.price!.toInt() : item.price!.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.statusSafe,
+                  ),
+                ),
+              ),
+            if (hasQuantity)
+              _buildFullWidthSpecBlock(
+                isDark: isDark,
+                icon: Icons.inventory_2_outlined,
+                iconColor: const Color(0xFF3B82F6),
+                iconBgColor: const Color(0xFF3B82F6).withOpacity(0.14),
+                title: 'Quantity',
+                content: Text(
+                  '${item.quantity} ${item.unit ?? ''}'.trim(),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  ),
+                ),
+              ),
+          ],
+
+          // Storage Location: Title on top-left, full details underneath!
+          if (hasLocation)
+            _buildFullWidthSpecBlock(
+              isDark: isDark,
+              icon: Icons.place_outlined,
+              iconColor: const Color(0xFFF59E0B),
+              iconBgColor: const Color(0xFFF59E0B).withOpacity(0.14),
+              title: 'Storage Location',
+              content: Text(
+                item.location!,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                ),
+              ),
+            ),
+
+          // Alert Schedule: Title on top-left, pills underneath!
+          if (hasReminders)
+            _buildFullWidthSpecBlock(
+              isDark: isDark,
+              icon: Icons.notifications_active_outlined,
+              iconColor: const Color(0xFF8B5CF6),
+              iconBgColor: const Color(0xFF8B5CF6).withOpacity(0.14),
+              title: 'Alert Schedule',
+              content: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: item.reminderOffsets.map((offset) {
+                  final text = offset == 0 ? 'On expiry day' : '$offset days before';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withOpacity(isDark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.alarm_rounded, size: 13, color: Color(0xFF8B5CF6)),
+                        const SizedBox(width: 4),
+                        Text(
+                          text,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF8B5CF6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+          // Notes Section: Title on top-left, full readable text underneath!
+          if (hasNotes)
+            _buildFullWidthSpecBlock(
+              isDark: isDark,
+              icon: Icons.notes_outlined,
+              iconColor: AppColors.primaryStrong,
+              iconBgColor: AppColors.primaryStrong.withOpacity(0.14),
+              title: 'Notes',
+              content: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Text(
+                  item.notes!,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF334155),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Full-width spec block: Icon & Title on top-left, details underneath
+  Widget _buildFullWidthSpecBlock({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required Widget content,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          width: 1,
         ),
       ),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        side: BorderSide(
-          color: isDestructive
-              ? AppColors.statusDanger.withOpacity(0.5)
-              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 15, color: iconColor),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          content,
+        ],
       ),
-      onPressed: onTap,
+    );
+  }
+
+  // Compact mini spec block for 2-column items (Price / Quantity)
+  Widget _buildMiniSpecBlock({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required Widget content,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(icon, size: 14, color: iconColor),
+              ),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          content,
+        ],
+      ),
     );
   }
 

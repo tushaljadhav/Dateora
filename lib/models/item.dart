@@ -14,6 +14,7 @@ class Item {
   final List<int> reminderOffsets;
   final String status; // active, used, disposed
   final String? statusChangedAt;
+  final double? price;
   final String createdAt;
   final String updatedAt;
 
@@ -30,6 +31,7 @@ class Item {
     required this.reminderOffsets,
     this.status = 'active',
     this.statusChangedAt,
+    this.price,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,6 +56,8 @@ class Item {
     String? status,
     String? statusChangedAt,
     bool clearStatusChangedAt = false,
+    double? price,
+    bool clearPrice = false,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -70,6 +74,7 @@ class Item {
       reminderOffsets: reminderOffsets ?? this.reminderOffsets,
       status: status ?? this.status,
       statusChangedAt: clearStatusChangedAt ? null : (statusChangedAt ?? this.statusChangedAt),
+      price: clearPrice ? null : (price ?? this.price),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -90,6 +95,7 @@ class Item {
       'reminder_offsets': jsonEncode(reminderOffsets),
       'status': status,
       'status_changed_at': statusChangedAt,
+      'price': price,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -110,6 +116,7 @@ class Item {
       'reminderOffsets': reminderOffsets,
       'status': status,
       'statusChangedAt': statusChangedAt,
+      'price': price,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -136,6 +143,7 @@ class Item {
     final expiryDate = (map['expiry_date'] ?? map['expiryDate'] ?? '') as String;
     final photoUri = (map['photo_uri'] ?? map['photoUri']) as String?;
     final statusChangedAt = (map['status_changed_at'] ?? map['statusChangedAt']) as String?;
+    final price = map['price'] != null ? (map['price'] as num).toDouble() : null;
     final createdAt = (map['created_at'] ?? map['createdAt'] ?? DateTime.now().toIso8601String()) as String;
     final updatedAt = (map['updated_at'] ?? map['updatedAt'] ?? DateTime.now().toIso8601String()) as String;
 
@@ -157,6 +165,7 @@ class Item {
       reminderOffsets: offsets,
       status: itemStatus,
       statusChangedAt: statusChangedAt,
+      price: price,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

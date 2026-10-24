@@ -5,7 +5,7 @@ import '../models/notification_record.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'dateora.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
 
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -55,6 +55,7 @@ class DatabaseHelper {
         reminder_offsets TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'active',
         status_changed_at TEXT,
+        price REAL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -102,6 +103,11 @@ class DatabaseHelper {
       await db.execute('DROP TABLE notification_records');
       await db.execute('ALTER TABLE notification_records_new RENAME TO notification_records');
       await db.execute('CREATE INDEX idx_notifications_item ON notification_records(item_id)');
+    }
+
+    if (oldVersion < 3) {
+      // Phase 3: Add price column to items for Bachat (savings tracker)
+      await db.execute('ALTER TABLE items ADD COLUMN price REAL');
     }
   }
 

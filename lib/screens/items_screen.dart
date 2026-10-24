@@ -271,24 +271,36 @@ class _ItemsScreenState extends State<ItemsScreen> {
   }) {
     final isSelected = current == value;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = accentColor ?? AppColors.primaryStrong;
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.pill),
       onTap: onSelect,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? AppColors.primaryStrong.withOpacity(0.3) : AppColors.primarySoft)
+              ? (accentColor != null
+                  ? accentColor.withOpacity(isDark ? 0.22 : 0.12)
+                  : (isDark ? AppColors.primaryStrong.withOpacity(0.3) : AppColors.primarySoft))
               : (isDark ? AppColors.darkSurface : Colors.white),
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
             color: isSelected
-                ? AppColors.primaryStrong
+                ? activeColor
                 : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            width: isSelected ? 1.5 : 1.0,
+            width: isSelected ? 1.6 : 1.0,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withOpacity(0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -304,9 +316,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
             Text(
               label,
               style: AppTextStyles.caption.copyWith(
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 color: isSelected
-                    ? (isDark ? AppColors.primary : AppColors.primaryDark)
+                    ? (accentColor ?? (isDark ? AppColors.primary : AppColors.primaryDark))
                     : (isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary),
               ),
             ),
@@ -315,8 +327,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
               '($count)',
               style: AppTextStyles.caption.copyWith(
                 fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? (isDark ? AppColors.primary : AppColors.primaryDark)
+                    ? (accentColor ?? (isDark ? AppColors.primary : AppColors.primaryDark))
                     : (isDark ? AppColors.darkTextMuted.withOpacity(0.7) : AppColors.lightTextMuted),
               ),
             ),

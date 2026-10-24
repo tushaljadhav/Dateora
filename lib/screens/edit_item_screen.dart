@@ -17,6 +17,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
+import '../widgets/app_date_picker_dialog.dart';
 import '../widgets/photo_picker_sheet.dart';
 import '../widgets/primary_button.dart';
 
@@ -32,6 +33,7 @@ class EditItemScreen extends StatefulWidget {
 class _EditItemScreenState extends State<EditItemScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  late TextEditingController _priceController;
   late TextEditingController _quantityController;
   late TextEditingController _unitController;
   late TextEditingController _locationController;
@@ -49,6 +51,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.item.name);
+    _priceController = TextEditingController(
+      text: widget.item.price != null
+          ? (widget.item.price! % 1 == 0
+              ? widget.item.price!.toInt().toString()
+              : widget.item.price!.toString())
+          : '',
+    );
     _quantityController = TextEditingController(text: widget.item.quantity?.toString() ?? '');
     _unitController = TextEditingController(text: widget.item.unit ?? '');
     _locationController = TextEditingController(text: widget.item.location ?? '');
@@ -63,6 +72,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _priceController.dispose();
     _quantityController.dispose();
     _unitController.dispose();
     _locationController.dispose();
@@ -94,18 +104,35 @@ class _EditItemScreenState extends State<EditItemScreen> {
   Future<void> _scanExpiryWithAi() async {
     if (_photoPath == null) return;
 
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final apiKey = settings.geminiApiKey;
-
     setState(() => _isScanningAi = true);
 
     try {
       final file = File(_photoPath!);
-      final ExpiryScanService scanService = GeminiExpiryScanService(defaultApiKey: apiKey);
+      final ExpiryScanService scanService = GeminiExpiryScanService();
 
-      final result = await scanService.scanImage(file, apiKey: apiKey);
+      final result = await scanService.scanImage(file);
 
       if (!mounted) return;
+
+      if (result.errorCode == 'RATE_LIMITED') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 5),
+            backgroundColor: AppColors.statusDanger,
+            content: Text('Aaj ke free scans khatam ho gaye. Kal wapas aao ya manual entry karo.'),
+          ),
+        );
+        return;
+      }
+
+      if (result.errorCode == 'TIMEOUT' || result.errorCode == 'NETWORK') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Server cold start or network issue. Please try again in 30 seconds or edit manually.'),
+          ),
+        );
+        return;
+      }
 
       final hasValidDate = result.hasDetectedDate &&
           result.expiryDate != null &&
@@ -201,29 +228,26 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
 
   Future<void> _selectCustomDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _expiryDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primaryStrong,
-                  onPrimary: Colors.white,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() => _expiryDate = picked);
     }
   }
 
+  DateTime? _lastSaveTimestamp;
+
   void _saveItem() async {
+    if (_isSaving) return;
+
+    final now = DateTime.now();
+    if (_lastSaveTimestamp != null && now.difference(_lastSaveTimestamp!).inMilliseconds < 1500) {
+      return;
+    }
+    _lastSaveTimestamp = now;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -232,11 +256,15 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
     final dateStr = DateFormat('yyyy-MM-dd').format(_expiryDate);
     final qty = double.tryParse(_quantityController.text.trim());
+    final priceStr = _priceController.text.trim();
+    final price = priceStr.isNotEmpty ? double.tryParse(priceStr) : null;
 
     final updated = widget.item.copyWith(
       name: _nameController.text.trim(),
       category: _selectedCategory,
       expiryDate: dateStr,
+      price: price,
+      clearPrice: priceStr.isEmpty,
       photoUri: _photoPath,
       quantity: qty,
       unit: _unitController.text.trim().isEmpty ? null : _unitController.text.trim(),
@@ -337,151 +365,179 @@ class _EditItemScreenState extends State<EditItemScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: CategoryModel.presetCategories.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2.3,
-              ),
-              itemBuilder: (context, index) {
-                final cat = CategoryModel.presetCategories[index];
-                final isSelected = _selectedCategory == cat.id;
+            // Symmetrical and adaptive category chips with zero truncation
+            Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: CategoryModel.presetCategories.map((cat) {
+                  final isSelected = _selectedCategory == cat.id;
 
-                return InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  onTap: () {
-                    setState(() => _selectedCategory = cat.id);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? cat.color.withOpacity(0.16)
-                          : (isDark ? AppColors.darkSurface : AppColors.lightBg),
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                      border: Border.all(
-                        color: isSelected ? cat.color : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        width: isSelected ? 1.6 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          cat.icon,
-                          size: 15,
-                          color: isSelected ? cat.color : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    onTap: () {
+                      setState(() => _selectedCategory = cat.id);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? cat.color.withOpacity(0.16)
+                            : (isDark ? AppColors.darkSurface : AppColors.lightBg),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(
+                          color: isSelected ? cat.color : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          width: isSelected ? 1.5 : 1,
                         ),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            cat.icon,
+                            size: 15,
+                            color: isSelected ? cat.color : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
                             cat.name,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                               color: isSelected ? cat.color : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: AppSpacing.lg),
-
-            Row(
-              children: [
-                Text(
-                  'Expiry Date *',
-                  style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
-                ),
-                if (_lastScanResult != null) ...[
-                  const Spacer(),
-                  _buildConfidenceBadge(_lastScanResult!),
-                ],
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              onTap: _selectCustomDate,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.md,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.primarySoft.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.primary,
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryStrong.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month_rounded,
-                        color: AppColors.primaryStrong,
-                        size: 20,
+                        ],
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Expires On',
-                          style: AppTextStyles.caption.copyWith(
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                          ),
-                        ),
-                        Text(
-                          dateFormatted,
-                          style: AppTextStyles.titleSmall.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.primaryDark,
-                          ),
-                        ),
-                      ],
-                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              Row(
+                children: [
+                  Text(
+                    'Expiry Date *',
+                    style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  if (_lastScanResult != null) ...[
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        border: Border.all(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    _buildConfidenceBadge(_lastScanResult!),
+                  ],
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              InkWell(
+                borderRadius: AppRadius.cardRadius,
+                onTap: _selectCustomDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : const Color(0xFFF0FDF4),
+                    borderRadius: AppRadius.cardRadius,
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.primary.withOpacity(0.35),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryStrong.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.calendar_month_rounded,
+                            color: AppColors.primaryStrong,
+                            size: 22,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'Change Date',
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w700,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dateFormatted,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                                color: isDark ? Colors.white : AppColors.primaryDark,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  DateFormat('EEEE').format(_expiryDate),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryStrong.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                  ),
+                                  child: Text(
+                                    _expiryDate.difference(DateTime.now()).inDays < 0
+                                        ? 'Expired'
+                                        : (_expiryDate.difference(DateTime.now()).inDays == 0
+                                            ? 'Expires today'
+                                            : '${_expiryDate.difference(DateTime.now()).inDays} days left'),
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primaryStrong,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkCard : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : AppColors.primary.withOpacity(0.3),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.edit_calendar_rounded,
+                          size: 18,
                           color: AppColors.primaryStrong,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
             const SizedBox(height: AppSpacing.lg),
 
@@ -631,6 +687,22 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     ),
                   ],
                 ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            // Price (₹)
+            TextFormField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Price (₹)',
+                hintText: 'e.g. 65 (optional)',
+                prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppColors.primaryStrong),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
               ),
             ),
 

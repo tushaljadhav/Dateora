@@ -5,284 +5,108 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
-/// Configuration constants for Gemini AI Vision processing.
+import 'device_service.dart';
+import 'photo_service.dart';
+
+/// Configuration constants for Dateora AI Vision processing.
 class AiConfig {
-  static const String model = 'gemini-3.5-flash-lite';
-  static const String fallbackModel = 'gemini-flash-latest';
-  static const String tertiaryModel = 'gemini-3-flash-preview';
-  static const int timeoutSeconds = 25;
-  static const double temperature = 0.1;
-  static const int maxScansPerDay = 30;
-  /// Background default Gemini API key (supports compile-time --dart-define=GEMINI_API_KEY=...)
-  static const String defaultApiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-    defaultValue: '',
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://dateora.onrender.com/api',
   );
+  static const int timeoutSeconds = 18; // 18s fail-fast timeout for proxy
+  static const int maxScansPerDay = 8;
+  static const double temperature = 0.1;
 }
 
-/// Abstract transport layer allowing direct Gemini calls or a future backend proxy.
-///
-/// Backend Proxy Architecture (5-line specification):
-/// 1. Endpoint: POST /api/ai/scan (accepts multipart/form-data or JSON payload with base64 images).
-/// 2. Authentication: Validated via user session JWT / Bearer token in the Authorization header.
-/// 3. Secret Management: Master Google Gemini API key is securely stored in backend environment variables.
-/// 4. Quota & Rate Limiting: Server enforces per-user daily rate limits and tracks quota usage.
-/// 5. Forwarding & Response: Server calls Gemini Vision API and returns strict sanitized JSON to the app.
+/// Typed Exceptions for clean client-side error handling
+class RateLimitException implements Exception {
+  final String message;
+  final int remaining;
+  const RateLimitException(this.message, {this.remaining = 0});
+  @override
+  String toString() => message;
+}
+
+class AiUnavailableException implements Exception {
+  final String message;
+  const AiUnavailableException(this.message);
+  @override
+  String toString() => message;
+}
+
+class InvalidInputException implements Exception {
+  final String message;
+  const InvalidInputException(this.message);
+  @override
+  String toString() => message;
+}
+
+/// Abstract transport layer contract.
 abstract class AiTransport {
   Future<Map<String, dynamic>> sendVisionRequest({
     required List<File> images,
     required String prompt,
-    required String model,
-    required String apiKey,
+    String? model,
+    String? apiKey,
     Map<String, dynamic>? responseSchema,
   });
 
   Future<Map<String, dynamic>> testConnection({
-    required String model,
-    required String apiKey,
+    String? model,
+    String? apiKey,
   });
 }
 
-/// Direct client-to-Google Gemini REST transport with timeout and retry logic.
-class DirectGeminiTransport implements AiTransport {
-  final http.Client _client;
-
-  DirectGeminiTransport({http.Client? client}) : _client = client ?? http.Client();
-
-  @override
-  Future<Map<String, dynamic>> sendVisionRequest({
-    required List<File> images,
-    required String prompt,
-    required String model,
-    required String apiKey,
-    Map<String, dynamic>? responseSchema,
-  }) async {
-    final cleanKey = apiKey.trim();
-    if (cleanKey.isEmpty) {
-      throw const FormatException('Gemini API Key is missing.');
-    }
-
-    // Build parts for each image (support up to 2 images: front + date side)
-    final List<Map<String, dynamic>> parts = [
-      {'text': prompt}
-    ];
-
-    for (final image in images) {
-      if (!await image.exists()) continue;
-      final bytes = await image.readAsBytes();
-      final base64Data = base64Encode(bytes);
-
-      final ext = p.extension(image.path).toLowerCase();
-      String mimeType = 'image/jpeg';
-      if (ext == '.png') {
-        mimeType = 'image/png';
-      } else if (ext == '.webp') {
-        mimeType = 'image/webp';
-      }
-
-      parts.add({
-        'inlineData': {
-          'mimeType': mimeType,
-          'data': base64Data,
-        }
-      });
-    }
-
-    final requestBody = {
-      'contents': [
-        {'parts': parts}
-      ],
-      'generationConfig': {
-        'temperature': AiConfig.temperature,
-        'responseMimeType': 'application/json',
-        if (responseSchema != null) 'responseSchema': responseSchema,
-      },
-    };
-
-    return _executeWithRetry(
-      model: model,
-      apiKey: cleanKey,
-      body: requestBody,
-    );
-  }
-
-  @override
-  Future<Map<String, dynamic>> testConnection({
-    required String model,
-    required String apiKey,
-  }) async {
-    final cleanKey = apiKey.trim();
-    if (cleanKey.isEmpty) {
-      return {'success': false, 'message': 'Please enter a Gemini API key.'};
-    }
-
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$cleanKey',
-    );
-
-    try {
-      final response = await _client
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': 'Respond with OK'}
-                  ]
-                }
-              ],
-              'generationConfig': {'maxOutputTokens': 10},
-            }),
-          )
-          .timeout(const Duration(seconds: AiConfig.timeoutSeconds));
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Connected to Google Gemini AI ($model) successfully! ✨',
-        };
-      } else if (response.statusCode == 401 || response.statusCode == 403) {
-        return {
-          'success': false,
-          'message': 'Invalid API Key. Please verify your Gemini key in Google AI Studio.',
-        };
-      } else if (response.statusCode == 429) {
-        return {
-          'success': false,
-          'message': 'Rate limit reached. Please wait a minute and try again.',
-        };
-      } else {
-        try {
-          final errBody = jsonDecode(response.body);
-          final msg = errBody['error']?['message'] ?? 'HTTP ${response.statusCode}';
-          return {'success': false, 'message': msg};
-        } catch (_) {
-          return {'success': false, 'message': 'HTTP error ${response.statusCode}'};
-        }
-      }
-    } on TimeoutException {
-      return {'success': false, 'message': 'Connection timed out after 20 seconds.'};
-    } on SocketException {
-      return {'success': false, 'message': 'No internet connection. Please check your network.'};
-    } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
-    }
-  }
-
-  /// Executes request with 20s timeout and 1 retry with exponential backoff on 5xx/network errors.
-  Future<Map<String, dynamic>> _executeWithRetry({
-    required String model,
-    required String apiKey,
-    required Map<String, dynamic> body,
-  }) async {
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-    );
-
-    http.Response? response;
-    Exception? lastException;
-
-    for (int attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) {
-        await Future.delayed(const Duration(milliseconds: 1000));
-      }
-
-      try {
-        response = await _client
-            .post(
-              url,
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode(body),
-            )
-            .timeout(const Duration(seconds: AiConfig.timeoutSeconds));
-
-        // If success or client error (4xx), do not retry
-        if (response.statusCode < 500) {
-          break;
-        }
-      } on SocketException catch (e) {
-        lastException = e;
-        if (attempt == 1) rethrow;
-      } on TimeoutException catch (e) {
-        lastException = e;
-        if (attempt == 1) rethrow;
-      } catch (e) {
-        lastException = Exception(e.toString());
-        if (attempt == 1) rethrow;
-      }
-    }
-
-    if (response == null) {
-      throw lastException ?? Exception('Failed to connect to Gemini API.');
-    }
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }
-
-    // Map distinct friendly error messages
-    if (response.statusCode == 401 || response.statusCode == 403) {
-      throw const HttpException('AUTH_FAILED');
-    }
-    if (response.statusCode == 429) {
-      throw const HttpException(
-        'AI scan rate limit reached. Please wait a minute and try again.',
-      );
-    }
-    if (response.statusCode == 404) {
-      throw const HttpException('MODEL_NOT_FOUND');
-    }
-    if (response.statusCode == 503) {
-      throw const HttpException('MODEL_UNAVAILABLE');
-    }
-
-    try {
-      final errBody = jsonDecode(response.body);
-      final msg = errBody['error']?['message'] ?? 'HTTP ${response.statusCode}';
-      throw HttpException(msg);
-    } catch (e) {
-      if (e is HttpException) rethrow;
-      throw HttpException('Gemini Vision Error: HTTP ${response.statusCode}');
-    }
-  }
-}
-
-/// Proxy transport forwarding requests to a backend server.
+/// Production Proxy transport communicating strictly through the Dateora Node.js backend proxy.
 class ProxyTransport implements AiTransport {
   final String baseUrl;
   final String? authToken;
   final http.Client _client;
 
   ProxyTransport({
-    required this.baseUrl,
+    String? baseUrl,
     this.authToken,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  })  : baseUrl = baseUrl ?? AiConfig.apiBaseUrl,
+        _client = client ?? http.Client();
 
   @override
   Future<Map<String, dynamic>> sendVisionRequest({
     required List<File> images,
     required String prompt,
-    required String model,
-    required String apiKey,
+    String? model,
+    String? apiKey,
     Map<String, dynamic>? responseSchema,
   }) async {
     final cleanBase = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-    final url = Uri.parse('$cleanBase/api/ai/scan');
+    final url = cleanBase.endsWith('/api')
+        ? Uri.parse('$cleanBase/ai/scan')
+        : Uri.parse('$cleanBase/api/ai/scan');
 
+    final deviceId = await DeviceService.getDeviceId();
     final headers = {
       'Content-Type': 'application/json',
+      'X-Device-Id': deviceId,
       if (authToken != null && authToken!.isNotEmpty) 'Authorization': 'Bearer $authToken',
     };
 
     final List<Map<String, dynamic>> imagePayloads = [];
     for (final img in images) {
       if (await img.exists()) {
-        final bytes = await img.readAsBytes();
+        final compressed = await PhotoService.compressForUpload(img);
+        final bytes = await compressed.readAsBytes();
+        final ext = p.extension(compressed.path).toLowerCase();
+        String mimeType = 'image/jpeg';
+        if (ext == '.png') {
+          mimeType = 'image/png';
+        } else if (ext == '.webp') {
+          mimeType = 'image/webp';
+        }
+
         imagePayloads.add({
-          'name': p.basename(img.path),
+          'name': p.basename(compressed.path),
+          'mimeType': mimeType,
           'data': base64Encode(bytes),
         });
       }
@@ -291,37 +115,188 @@ class ProxyTransport implements AiTransport {
     final body = jsonEncode({
       'images': imagePayloads,
       'prompt': prompt,
-      'model': model,
     });
 
-    final response = await _client
-        .post(url, headers: headers, body: body)
-        .timeout(const Duration(seconds: AiConfig.timeoutSeconds));
+    final http.Response response;
+    try {
+      response = await _client
+          .post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: AiConfig.timeoutSeconds));
+    } on TimeoutException {
+      throw const SocketException('Server response timed out after 60 seconds.');
+    }
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
-    throw HttpException('Proxy Error: HTTP ${response.statusCode}');
+
+    try {
+      final errBody = jsonDecode(response.body) as Map<String, dynamic>;
+      final code = errBody['error'] as String?;
+      final msg = errBody['message'] as String? ?? 'Proxy returned HTTP ${response.statusCode}';
+      final remaining = errBody['remaining'] as int? ?? 0;
+
+      if (code == 'RATE_LIMITED' || response.statusCode == 429) {
+        throw RateLimitException(msg, remaining: remaining);
+      }
+      if (code == 'AI_UNAVAILABLE' || response.statusCode >= 500) {
+        throw AiUnavailableException(msg);
+      }
+      if (code == 'INVALID_INPUT' || response.statusCode == 400) {
+        throw InvalidInputException(msg);
+      }
+      throw HttpException(msg);
+    } catch (e) {
+      if (e is RateLimitException || e is AiUnavailableException || e is InvalidInputException) {
+        rethrow;
+      }
+      throw HttpException('Proxy Error: HTTP ${response.statusCode}');
+    }
   }
 
   @override
   Future<Map<String, dynamic>> testConnection({
-    required String model,
-    required String apiKey,
+    String? model,
+    String? apiKey,
   }) async {
     final cleanBase = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
-    final url = Uri.parse('$cleanBase/api/ai/health');
+    final url = cleanBase.endsWith('/api')
+        ? Uri.parse('$cleanBase/ai/health')
+        : Uri.parse('$cleanBase/api/ai/health');
 
     try {
       final response = await _client
           .get(url)
-          .timeout(const Duration(seconds: AiConfig.timeoutSeconds));
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         return {'success': true, 'message': 'Proxy backend connected successfully!'};
       }
       return {'success': false, 'message': 'Proxy returned HTTP ${response.statusCode}'};
     } catch (e) {
       return {'success': false, 'message': 'Could not connect to proxy: $e'};
+    }
+  }
+}
+
+/// Direct transport communicating straight with Google's Gemini Vision API.
+/// Instant 1-2s response without intermediate proxy cold start.
+class DirectGeminiTransport implements AiTransport {
+  final String apiKey;
+  final String model;
+  final http.Client _client;
+
+  DirectGeminiTransport({
+    required this.apiKey,
+    this.model = 'gemini-1.5-flash',
+    http.Client? client,
+  })  : _client = client ?? http.Client();
+
+  @override
+  Future<Map<String, dynamic>> sendVisionRequest({
+    required List<File> images,
+    required String prompt,
+    String? model,
+    String? apiKey,
+    Map<String, dynamic>? responseSchema,
+  }) async {
+    final effectiveKey = (apiKey != null && apiKey.trim().isNotEmpty) ? apiKey.trim() : this.apiKey;
+    final effectiveModel = (model != null && model.trim().isNotEmpty) ? model.trim() : this.model;
+
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModel:generateContent?key=$effectiveKey',
+    );
+
+    final List<Map<String, dynamic>> parts = [
+      {'text': prompt},
+    ];
+
+    for (final img in images) {
+      if (await img.exists()) {
+        final compressed = await PhotoService.compressForUpload(img);
+        final bytes = await compressed.readAsBytes();
+        final ext = p.extension(compressed.path).toLowerCase();
+        String mimeType = 'image/jpeg';
+        if (ext == '.png') {
+          mimeType = 'image/png';
+        } else if (ext == '.webp') {
+          mimeType = 'image/webp';
+        }
+
+        parts.add({
+          'inlineData': {
+            'mimeType': mimeType,
+            'data': base64Encode(bytes),
+          },
+        });
+      }
+    }
+
+    final body = jsonEncode({
+      'contents': [
+        {'parts': parts}
+      ],
+      'generationConfig': {
+        'temperature': AiConfig.temperature,
+        'responseMimeType': 'application/json',
+      },
+    });
+
+    final http.Response response;
+    try {
+      response = await _client
+          .post(url, headers: {'Content-Type': 'application/json'}, body: body)
+          .timeout(const Duration(seconds: 22));
+    } on TimeoutException {
+      throw const SocketException('Direct Gemini API timed out after 22 seconds.');
+    }
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else if (response.statusCode == 429) {
+      throw const RateLimitException('Gemini API rate limit reached. Please wait a minute before retrying.');
+    } else if (response.statusCode == 400 || response.statusCode == 403) {
+      final errBody = jsonDecode(response.body);
+      final msg = errBody?['error']?['message'] ?? 'Invalid Gemini API key or request.';
+      throw InvalidInputException(msg.toString());
+    } else {
+      throw HttpException('Gemini API Error: HTTP ${response.statusCode}');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> testConnection({
+    String? model,
+    String? apiKey,
+  }) async {
+    final effectiveKey = (apiKey != null && apiKey.trim().isNotEmpty) ? apiKey.trim() : this.apiKey;
+    final effectiveModel = (model != null && model.trim().isNotEmpty) ? model.trim() : this.model;
+
+    final url = Uri.parse(
+      'https://generativelanguage.googleapis.com/v1beta/models/$effectiveModel:generateContent?key=$effectiveKey',
+    );
+
+    try {
+      final response = await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': 'Ping test. Reply with JSON {"status": "ok"}'}
+              ]
+            }
+          ],
+          'generationConfig': {'responseMimeType': 'application/json'},
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Google Gemini API key is valid and connected!'};
+      }
+      return {'success': false, 'message': 'Gemini returned HTTP ${response.statusCode}'};
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to Gemini: $e'};
     }
   }
 }
@@ -511,6 +486,8 @@ class ScanResult {
   final bool isAlreadyExpired;
   final bool isSuccess;
   final String? errorMessage;
+  final String? errorCode; // RATE_LIMITED, AI_UNAVAILABLE, INVALID_INPUT, TIMEOUT, NETWORK
+  final int? remainingScans; // Remaining daily scans from backend
 
   const ScanResult({
     this.productName,
@@ -532,6 +509,8 @@ class ScanResult {
     this.isAlreadyExpired = false,
     this.isSuccess = true,
     this.errorMessage,
+    this.errorCode,
+    this.remainingScans,
   });
 
   /// Confidence level classification.
@@ -541,9 +520,63 @@ class ScanResult {
     return 'low';
   }
 
-  factory ScanResult.failed({required String message}) => ScanResult(
+  ScanResult copyWith({
+    String? productName,
+    String? category,
+    String? categoryId,
+    String? expiryDate,
+    bool? isEstimated,
+    String? printedDate,
+    String? batchNumber,
+    String? mfgDate,
+    int? paoMonths,
+    double? quantity,
+    String? unit,
+    String? location,
+    String? notes,
+    double? confidence,
+    String? rawText,
+    bool? hasDetectedDate,
+    bool? isAlreadyExpired,
+    bool? isSuccess,
+    String? errorMessage,
+    String? errorCode,
+    int? remainingScans,
+  }) {
+    return ScanResult(
+      productName: productName ?? this.productName,
+      category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
+      expiryDate: expiryDate ?? this.expiryDate,
+      isEstimated: isEstimated ?? this.isEstimated,
+      printedDate: printedDate ?? this.printedDate,
+      batchNumber: batchNumber ?? this.batchNumber,
+      mfgDate: mfgDate ?? this.mfgDate,
+      paoMonths: paoMonths ?? this.paoMonths,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      location: location ?? this.location,
+      notes: notes ?? this.notes,
+      confidence: confidence ?? this.confidence,
+      rawText: rawText ?? this.rawText,
+      hasDetectedDate: hasDetectedDate ?? this.hasDetectedDate,
+      isAlreadyExpired: isAlreadyExpired ?? this.isAlreadyExpired,
+      isSuccess: isSuccess ?? this.isSuccess,
+      errorMessage: errorMessage ?? this.errorMessage,
+      errorCode: errorCode ?? this.errorCode,
+      remainingScans: remainingScans ?? this.remainingScans,
+    );
+  }
+
+  factory ScanResult.failed({
+    required String message,
+    String? errorCode,
+    int? remainingScans,
+  }) => ScanResult(
         isSuccess: false,
         errorMessage: message,
+        errorCode: errorCode,
+        remainingScans: remainingScans,
         confidence: 0.0,
       );
 
@@ -559,7 +592,7 @@ abstract class ExpiryScanService {
   Future<ScanResult> scanImage(File image, {String? apiKey});
 }
 
-/// Production Google Gemini Multimodal Vision AI Scanner.
+/// Production Google Gemini Multimodal Vision AI Scanner communicating via backend proxy.
 class GeminiExpiryScanService implements ExpiryScanService {
   final String? defaultApiKey;
   final AiTransport transport;
@@ -570,12 +603,27 @@ class GeminiExpiryScanService implements ExpiryScanService {
   GeminiExpiryScanService({
     this.defaultApiKey,
     AiTransport? transport,
-  }) : transport = transport ?? DirectGeminiTransport();
+  }) : transport = transport ?? ProxyTransport();
 
-  /// Validates a Google Gemini API Key by pinging the endpoint with a test prompt.
-  static Future<Map<String, dynamic>> testApiKey(String apiKey) async {
-    final direct = DirectGeminiTransport();
-    return direct.testConnection(model: AiConfig.model, apiKey: apiKey);
+  /// Fire-and-forget lightweight health ping to warm up Render cold start early
+  static void warmupServer() {
+    try {
+      final clean = AiConfig.apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+      final url = clean.endsWith('/api')
+          ? Uri.parse('$clean/health')
+          : Uri.parse('$clean/api/health');
+      http.get(url).timeout(const Duration(seconds: 5)).then((_) {}).catchError((_) {});
+    } catch (_) {}
+  }
+
+  /// Validates backend proxy connection or direct Gemini API key.
+  static Future<Map<String, dynamic>> testApiKey([String? apiKey]) async {
+    if (apiKey != null && apiKey.trim().isNotEmpty) {
+      final direct = DirectGeminiTransport(apiKey: apiKey.trim());
+      return direct.testConnection();
+    }
+    final proxy = ProxyTransport();
+    return proxy.testConnection();
   }
 
   @override
@@ -585,18 +633,6 @@ class GeminiExpiryScanService implements ExpiryScanService {
 
   @override
   Future<ScanResult> scanImages(List<File> images, {String? apiKey}) async {
-    final keyToUse = (apiKey != null && apiKey.trim().isNotEmpty)
-        ? apiKey.trim()
-        : ((defaultApiKey != null && defaultApiKey!.trim().isNotEmpty)
-            ? defaultApiKey!.trim()
-            : AiConfig.defaultApiKey.trim());
-
-    if (keyToUse.isEmpty) {
-      return ScanResult.failed(
-        message: 'AI scanning service is currently unavailable. Please enter details manually.',
-      );
-    }
-
     final validImages = images.where((f) => f.existsSync()).toList();
     if (validImages.isEmpty) {
       return ScanResult.failed(message: 'No valid image file found to analyze.');
@@ -612,7 +648,6 @@ class GeminiExpiryScanService implements ExpiryScanService {
     final todayStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-    // 2. High-precision Gemini Vision System Prompt (Optimized for Indian & Global FMCG, Regional packaging & Dot-Matrix OCR)
     final promptText = '''
 You are Dateora AI — a high-accuracy product expiry & packaging specialist.
 Analyze the provided product packaging photo(s) carefully. You may receive 1 photo (front) or 2 photos (front + date side).
@@ -650,70 +685,77 @@ TASK INSTRUCTIONS:
 Return strictly a valid JSON object matching the requested schema.
 ''';
 
-    final responseSchema = {
-      'type': 'OBJECT',
-      'properties': {
-        'product_name': {'type': 'STRING'},
-        'category': {'type': 'STRING'},
-        'expiry_date_printed': {'type': 'STRING'},
-        'expiry_date_estimated': {'type': 'STRING'},
-        'batch_number': {'type': 'STRING'},
-        'mfg_date': {'type': 'STRING'},
-        'pao_months': {'type': 'INTEGER'},
-        'quantity': {'type': 'NUMBER'},
-        'unit': {'type': 'STRING'},
-        'location': {'type': 'STRING'},
-        'notes': {'type': 'STRING'},
-        'confidence': {'type': 'NUMBER'},
-      },
-      'required': ['category', 'confidence'],
-    };
+    final String? effectiveApiKey = (apiKey != null && apiKey.trim().isNotEmpty)
+        ? apiKey.trim()
+        : (defaultApiKey != null && defaultApiKey!.trim().isNotEmpty ? defaultApiKey!.trim() : null);
 
-    // 3. Send request with automatic multi-tier fallback across available Gemini models
-    Map<String, dynamic>? rawResponse;
-    final candidateModels = [
-      AiConfig.model,
-      AiConfig.fallbackModel,
-      AiConfig.tertiaryModel,
-    ];
-
-    dynamic lastError;
-    for (final candidateModel in candidateModels) {
-      try {
-        rawResponse = await transport.sendVisionRequest(
-          images: validImages,
-          prompt: promptText,
-          model: candidateModel,
-          apiKey: keyToUse,
-          responseSchema: responseSchema,
-        );
-        break;
-      } catch (e) {
-        lastError = e;
-      }
+    AiTransport effectiveTransport = transport;
+    if (effectiveApiKey != null && effectiveApiKey.isNotEmpty) {
+      effectiveTransport = DirectGeminiTransport(apiKey: effectiveApiKey);
     }
 
-    if (rawResponse == null) {
-      if (lastError != null) throw lastError;
+    Map<String, dynamic>? rawResponse;
+    try {
+      rawResponse = await effectiveTransport.sendVisionRequest(
+        images: validImages,
+        prompt: promptText,
+      );
+    } on RateLimitException catch (e) {
       return ScanResult.failed(
-        message: 'Could not connect to AI scanning service. Please check your internet connection.',
+        message: e.message,
+        errorCode: 'RATE_LIMITED',
+        remainingScans: e.remaining,
+      );
+    } on AiUnavailableException catch (e) {
+      return ScanResult.failed(
+        message: e.message,
+        errorCode: 'AI_UNAVAILABLE',
+      );
+    } on InvalidInputException catch (e) {
+      return ScanResult.failed(
+        message: e.message,
+        errorCode: 'INVALID_INPUT',
+      );
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('timeout') || errStr.contains('timed out')) {
+        return ScanResult.failed(
+          message: effectiveApiKey != null
+              ? 'Gemini API connection timed out. Please check your internet.'
+              : 'Proxy server response nahi de raha hai (Render free-tier cold start). Direct 1-second scanning ke liye Settings mein free Gemini API key add karein.',
+          errorCode: 'TIMEOUT',
+        );
+      }
+      return ScanResult.failed(
+        message: 'Could not connect to AI scanning service ($e). Please check your internet or add Gemini API key in Settings.',
+        errorCode: 'NETWORK',
       );
     }
 
-    final parsedResult = _parseGeminiResponse(rawResponse);
+
+    final int? remaining = rawResponse['remaining'] as int?;
+    final parsedResult = _parseGeminiResponse(rawResponse).copyWith(remainingScans: remaining);
     _resultCache[cacheKey] = parsedResult;
     return parsedResult;
   }
 
   ScanResult _parseGeminiResponse(Map<String, dynamic> data) {
+    String? rawJsonString;
+
     final candidatePart = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-    if (candidatePart == null || candidatePart.toString().trim().isEmpty) {
+    if (candidatePart != null && candidatePart.toString().trim().isNotEmpty) {
+      rawJsonString = candidatePart.toString().trim();
+    } else if (data.containsKey('product_name') || data.containsKey('category')) {
+      rawJsonString = jsonEncode(data);
+    }
+
+    if (rawJsonString == null) {
       return ScanResult.failed(
         message: 'No analysis returned by Gemini Vision. Please retake the photo with good lighting.',
       );
     }
 
-    String cleaned = candidatePart.toString().trim();
+    String cleaned = rawJsonString;
     if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
     if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
     if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);

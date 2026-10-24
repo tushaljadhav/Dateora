@@ -21,11 +21,28 @@ class BarcodeProduct {
     this.imageUrl,
   });
 
+  /// Formatted display name with smart brand deduplication (e.g. handles "Smith and Jones" vs "Smith & Jones")
   String get displayName {
-    if (brand != null && brand!.isNotEmpty && productName != null && productName!.isNotEmpty) {
-      return '$brand $productName';
+    final b = brand?.trim() ?? '';
+    final p = productName?.trim() ?? '';
+    if (b.isEmpty) return p;
+    if (p.isEmpty) return b;
+
+    // Normalize strings for comparison (remove punctuation, normalize '&' to 'and', collapse spaces)
+    String normalize(String s) => s
+        .toLowerCase()
+        .replaceAll('&', 'and')
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    final normB = normalize(b);
+    final normP = normalize(p);
+
+    if (normP.startsWith(normB) || normP.contains(normB)) {
+      return p;
     }
-    return productName ?? brand ?? '';
+    return '$b $p';
   }
 }
 
@@ -64,10 +81,10 @@ class OpenFoodFactsService {
       final name = p['product_name'] ?? p['product_name_en'];
       final brand = p['brands'];
       final categoryTags = p['categories_tags'] as List?;
-      String? category;
-      if (categoryTags != null && categoryTags.isNotEmpty) {
-        category = categoryTags.first.toString().replaceAll('en:', '');
-      }
+      final rawCategory = p['categories']?.toString();
+
+      // Normalize into Dateora preset category IDs: groceries, dairy, pantry, beverages, medicine, skincare, household
+      final category = mapToPresetCategory(rawCategory, name?.toString(), categoryTags);
 
       // Quantity / Unit parsing from quantity string (e.g., "500 ml", "1 kg")
       final qtyStr = p['quantity']?.toString();
@@ -96,5 +113,105 @@ class OpenFoodFactsService {
       // Graceful fallback on network timeout or parse failure
       return null;
     }
+  }
+
+  /// Maps Open Food Facts categories and product names directly to Dateora's preset category IDs:
+  /// 'groceries', 'medicine', 'skincare', 'dairy', 'household', 'beverages', 'pantry'
+  static String mapToPresetCategory(String? rawCategory, String? productName, List? tags) {
+    final combined = [
+      if (rawCategory != null) rawCategory,
+      if (productName != null) productName,
+      if (tags != null) ...tags.map((t) => t.toString()),
+    ].join(' ').toLowerCase();
+
+    // 1. Dairy & Eggs
+    if (combined.contains('dairy') ||
+        combined.contains('dairies') ||
+        combined.contains('milk') ||
+        combined.contains('cheese') ||
+        combined.contains('butter') ||
+        combined.contains('paneer') ||
+        combined.contains('curd') ||
+        combined.contains('yogurt') ||
+        combined.contains('dahi') ||
+        combined.contains('ghee') ||
+        combined.contains('cream') ||
+        combined.contains('egg')) {
+      return 'dairy';
+    }
+
+    // 2. Beverages / Drinks
+    if (combined.contains('beverage') ||
+        combined.contains('drink') ||
+        combined.contains('juice') ||
+        combined.contains('tea') ||
+        combined.contains('coffee') ||
+        combined.contains('chai') ||
+        combined.contains('water') ||
+        combined.contains('soda') ||
+        combined.contains('cola')) {
+      return 'beverages';
+    }
+
+    // 3. Pantry & Cooking Staples (Pastes, Spices, Masala, Oil, Flour, Dal)
+    if (combined.contains('paste') || // e.g. Ginger Garlic Paste, Tomato Paste
+        combined.contains('spice') ||
+        combined.contains('masala') ||
+        combined.contains('sauce') ||
+        combined.contains('ketchup') ||
+        combined.contains('oil') ||
+        combined.contains('vinegar') ||
+        combined.contains('pickle') ||
+        combined.contains('achar') ||
+        combined.contains('flour') ||
+        combined.contains('atta') ||
+        combined.contains('besan') ||
+        combined.contains('maida') ||
+        combined.contains('suji') ||
+        combined.contains('rice') ||
+        combined.contains('chawal') ||
+        combined.contains('dal') ||
+        combined.contains('pulses') ||
+        combined.contains('lentil') ||
+        combined.contains('salt') ||
+        combined.contains('sugar') ||
+        combined.contains('condiment') ||
+        combined.contains('seasoning') ||
+        combined.contains('pantry')) {
+      return 'pantry';
+    }
+
+    // 4. Medicine / Healthcare
+    if (combined.contains('medicine') ||
+        combined.contains('tablet') ||
+        combined.contains('capsule') ||
+        combined.contains('syrup') ||
+        combined.contains('pharma') ||
+        combined.contains('paracetamol')) {
+      return 'medicine';
+    }
+
+    // 5. Skincare & Personal Care
+    if (combined.contains('skin') ||
+        combined.contains('lotion') ||
+        combined.contains('shampoo') ||
+        combined.contains('soap') ||
+        combined.contains('face wash') ||
+        combined.contains('cosmetic')) {
+      return 'skincare';
+    }
+
+    // 6. Household
+    if (combined.contains('household') ||
+        combined.contains('detergent') ||
+        combined.contains('dishwash') ||
+        combined.contains('cleaner') ||
+        combined.contains('tissue') ||
+        combined.contains('wipe')) {
+      return 'household';
+    }
+
+    // Default for packaged foods, snacks, biscuits, etc.
+    return 'groceries';
   }
 }

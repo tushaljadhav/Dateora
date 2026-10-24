@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/item.dart';
 import '../models/status_evaluation.dart';
+import '../services/analytics_service.dart';
 import '../services/item_repository.dart';
+import '../services/notification_service.dart';
 
 class ItemsProvider with ChangeNotifier {
   final ItemRepository _repo = ItemRepository.instance;
@@ -92,6 +95,21 @@ class ItemsProvider with ChangeNotifier {
     try {
       _activeItems = await _repo.getActiveItems();
       _historyItems = await _repo.getHistoryItems();
+
+      // Reschedule weekly summary if enabled
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getBool('weekly_summary_enabled') ?? true) {
+          final dailyTime = prefs.getString('daily_notification_time') ?? '09:00';
+          final langStr = prefs.getString('app_language');
+          final localeCode = (langStr == null || langStr == 'system') ? null : langStr;
+          await NotificationService.instance.scheduleWeeklySummaryNotification(
+            _activeItems,
+            dailyNotificationTime: dailyTime,
+            localeCode: localeCode,
+          );
+        }
+      } catch (_) {}
     } catch (_) {}
 
     _isLoading = false;
@@ -128,6 +146,7 @@ class ItemsProvider with ChangeNotifier {
     String? location,
     String? notes,
     List<int>? reminderOffsets,
+    double? price,
     String dailyNotificationTime = '09:00',
   }) async {
     final newItem = await _repo.addItem(
@@ -140,6 +159,7 @@ class ItemsProvider with ChangeNotifier {
       location: location,
       notes: notes,
       reminderOffsets: reminderOffsets,
+      price: price,
       dailyNotificationTime: dailyNotificationTime,
     );
 
@@ -160,6 +180,11 @@ class ItemsProvider with ChangeNotifier {
 
   Future<void> markItemStatus(Item item, String status) async {
     await _repo.markItemStatus(item, status);
+    if (status == 'used') {
+      AnalyticsService.instance.logItemMarkedUsed();
+    } else if (status == 'disposed') {
+      AnalyticsService.instance.logItemMarkedDisposed();
+    }
     await loadItems();
   }
 

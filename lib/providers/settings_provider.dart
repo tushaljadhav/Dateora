@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/ai_expiry_scan_service.dart';
+import '../services/analytics_service.dart';
 
 class SettingsProvider with ChangeNotifier {
   static const _secureStorageKey = 'gemini_api_key';
@@ -11,7 +11,10 @@ class SettingsProvider with ChangeNotifier {
   );
 
   ThemeMode _themeMode = ThemeMode.light;
+  Locale? _locale;
   bool _notificationsEnabled = true;
+  bool _weeklySummaryEnabled = true;
+  bool _analyticsEnabled = true;
   int _defaultReminderOffset = 3;
   String _dailyNotificationTime = '09:00';
   bool _onboardingCompleted = false;
@@ -26,7 +29,11 @@ class SettingsProvider with ChangeNotifier {
   String _proxyBaseUrl = '';
 
   ThemeMode get themeMode => _themeMode;
+  Locale? get locale => _locale;
+  String get languageCode => _locale?.languageCode ?? 'system';
   bool get notificationsEnabled => _notificationsEnabled;
+  bool get weeklySummaryEnabled => _weeklySummaryEnabled;
+  bool get analyticsEnabled => _analyticsEnabled;
   int get defaultReminderOffset => _defaultReminderOffset;
   String get dailyNotificationTime => _dailyNotificationTime;
   bool get onboardingCompleted => _onboardingCompleted;
@@ -48,10 +55,8 @@ class SettingsProvider with ChangeNotifier {
     return '••••••••••••$last4';
   }
 
-  /// Whether the active key came from the environment flag instead of user input
-  bool get isKeyFromEnvironment =>
-      _geminiApiKey.isNotEmpty &&
-      _geminiApiKey == const String.fromEnvironment('GEMINI_API_KEY');
+  /// Whether a custom API key was set
+  bool get isKeyFromEnvironment => false;
 
   SettingsProvider() {
     loadSettings();
@@ -70,7 +75,21 @@ class SettingsProvider with ChangeNotifier {
       _themeMode = ThemeMode.light;
     }
 
+    // Language
+    final langStr = prefs.getString('app_language') ?? 'system';
+    if (langStr == 'hi') {
+      _locale = const Locale('hi');
+    } else if (langStr == 'mr') {
+      _locale = const Locale('mr');
+    } else if (langStr == 'en') {
+      _locale = const Locale('en');
+    } else {
+      _locale = null; // system default
+    }
+
     _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+    _weeklySummaryEnabled = prefs.getBool('weekly_summary_enabled') ?? true;
+    _analyticsEnabled = prefs.getBool('analytics_enabled') ?? true;
     _defaultReminderOffset = prefs.getInt('default_reminder_offset') ?? 3;
     _dailyNotificationTime = prefs.getString('daily_notification_time') ?? '09:00';
     _onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
@@ -94,19 +113,9 @@ class SettingsProvider with ChangeNotifier {
     // 3. ONE-TIME MIGRATION: SharedPreferences -> flutter_secure_storage
     await _migrateLegacyKey(prefs);
 
-    // 4. Resolve API key with background default key guaranteed
+    // 4. Resolve API key if stored previously in secure storage
     final secureKey = await _secureStorage.read(key: _secureStorageKey);
-    const envKey = String.fromEnvironment('GEMINI_API_KEY');
-
-    if (envKey.isNotEmpty) {
-      _geminiApiKey = envKey.trim();
-    } else if (secureKey != null && secureKey.trim().isNotEmpty) {
-      _geminiApiKey = secureKey.trim();
-    } else if (AiConfig.defaultApiKey.isNotEmpty) {
-      _geminiApiKey = AiConfig.defaultApiKey;
-    } else {
-      _geminiApiKey = '';
-    }
+    _geminiApiKey = secureKey?.trim() ?? '';
 
     notifyListeners();
   }
@@ -140,11 +149,34 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString('theme_mode', val);
   }
 
+  Future<void> setLocale(Locale? locale) async {
+    _locale = locale;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    final langStr = locale?.languageCode ?? 'system';
+    await prefs.setString('app_language', langStr);
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     _notificationsEnabled = enabled;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications_enabled', enabled);
+  }
+
+  Future<void> setWeeklySummaryEnabled(bool enabled) async {
+    _weeklySummaryEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('weekly_summary_enabled', enabled);
+  }
+
+  Future<void> setAnalyticsEnabled(bool enabled) async {
+    _analyticsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('analytics_enabled', enabled);
+    await AnalyticsService.instance.setEnabled(enabled);
   }
 
   Future<void> setDefaultReminderOffset(int offset) async {
