@@ -279,6 +279,75 @@ router.post('/scan', burstLimiter, async (req, res) => {
   });
 });
 
+// ─── POST /api/ai/barcode — Resolve product metadata from barcode using Gemini ───
+router.post('/barcode', burstLimiter, async (req, res) => {
+  const { barcode } = req.body || {};
+  if (!barcode || typeof barcode !== 'string' || barcode.trim().length === 0) {
+    return res.status(400).json({
+      error: 'INVALID_INPUT',
+      message: 'Barcode string is required.',
+    });
+  }
+
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return res.status(503).json({
+      error: 'AI_UNAVAILABLE',
+      message: 'AI scanning is not configured on the server.',
+    });
+  }
+
+  const cleanBarcode = barcode.trim();
+  const prompt = `Identify the retail consumer product for this barcode: "${cleanBarcode}".
+Return a strictly valid JSON object with:
+- "productName": string or null (clean product name including brand if known, e.g. "Dove Cream Beauty Bathing Bar")
+- "brand": string or null
+- "category": string or null (one of: groceries, dairy, pantry, beverages, medicine, skincare, household)
+- "quantity": number or null
+- "unit": string or null (e.g. g, ml, kg, l, pcs)
+If the exact product is not known with high confidence, set "productName": null and guess the most likely "category" based on GS1 prefix or standard packaging.`;
+
+  try {
+    const primaryModel = getGeminiModel();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`;
+
+    const upstreamResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (!upstreamResponse.ok) {
+      const errText = await upstreamResponse.text();
+      console.error(`❌ Upstream Barcode Error [${upstreamResponse.status}]:`, errText);
+      return res.status(502).json({ error: 'UPSTREAM_ERROR' });
+    }
+
+    const data = await upstreamResponse.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let parsed = null;
+    if (rawText) {
+      try {
+        parsed = JSON.parse(rawText);
+      } catch (_) {}
+    }
+
+    return res.json({
+      barcode: cleanBarcode,
+      product: parsed,
+    });
+  } catch (err) {
+    console.error('❌ Server Barcode Exception:', err.message);
+    return res.status(500).json({ error: 'SERVER_ERROR', message: err.message });
+  }
+});
+
 module.exports = {
   router,
   checkAndResetDailyLimits,

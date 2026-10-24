@@ -7,9 +7,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_text_styles.dart';
 
-/// Full-screen live camera barcode scanner with torch toggle,
-/// viewfinder cutout, debounce, camera permission check,
-/// and fallback manual entry button.
+/// Full-screen live camera barcode & QR scanner with torch toggle,
+/// viewfinder cutout, instant recognition, and manual entry fallback.
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
 
@@ -22,60 +21,37 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   bool _isTorchOn = false;
   bool _hasScanned = false;
   bool _cameraPermissionGranted = true;
-  bool _isReadyToScan = false;
-  Timer? _warmupTimer;
 
   @override
   void initState() {
     super.initState();
+    // Default controller supports all common 1D & 2D formats (EAN, UPC, Code 128, Code 39, ITF, QR, etc.)
     _controller = MobileScannerController(
-      formats: const [
-        BarcodeFormat.ean13,
-        BarcodeFormat.ean8,
-        BarcodeFormat.upcA,
-        BarcodeFormat.upcE,
-      ],
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      autoStart: false,
+      detectionSpeed: DetectionSpeed.normal,
+      autoStart: true,
     );
     _checkCameraPermission();
-  }
-
-  void _startWarmupTimer() {
-    _warmupTimer?.cancel();
-    setState(() => _isReadyToScan = false);
-    // 1.4-second stabilization pause so user can properly align barcode without partial captures
-    _warmupTimer = Timer(const Duration(milliseconds: 1400), () {
-      if (mounted) {
-        setState(() => _isReadyToScan = true);
-      }
-    });
   }
 
   Future<void> _checkCameraPermission() async {
     final status = await Permission.camera.status;
     if (status.isGranted) {
       if (mounted) {
-        setState(() {
-          _cameraPermissionGranted = true;
-        });
-        _controller.start();
-        _startWarmupTimer();
+        setState(() => _cameraPermissionGranted = true);
+        try {
+          _controller.start();
+        } catch (_) {}
       }
     } else {
       final requested = await Permission.camera.request();
       if (mounted) {
         if (requested.isGranted) {
-          setState(() {
-            _cameraPermissionGranted = true;
-          });
-          _controller.start();
-          _startWarmupTimer();
+          setState(() => _cameraPermissionGranted = true);
+          try {
+            _controller.start();
+          } catch (_) {}
         } else {
-          setState(() {
-            _cameraPermissionGranted = false;
-          });
-          // Fallback directly to manual entry when camera permission is denied
+          setState(() => _cameraPermissionGranted = false);
           _showManualEntryDialog();
         }
       }
@@ -84,23 +60,24 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   @override
   void dispose() {
-    _warmupTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   void _onDetect(BarcodeCapture capture) {
-    // Ignore any frames during camera warm-up or after barcode is already captured
-    if (!_isReadyToScan || _hasScanned) return;
+    if (_hasScanned) return;
 
     for (final barcode in capture.barcodes) {
       final code = barcode.rawValue?.trim();
-      // Ensure barcode is numeric and at least 8 digits (standard EAN/UPC) to avoid partial scans
-      if (code != null && code.length >= 8 && RegExp(r'^\d+$').hasMatch(code)) {
+      if (code != null && code.isNotEmpty) {
         _hasScanned = true;
         SoundService.playBarcodeBeep();
-        _controller.stop();
-        Navigator.of(context).pop(code);
+        try {
+          _controller.stop();
+        } catch (_) {}
+        if (mounted) {
+          Navigator.of(context).pop(code);
+        }
         break;
       }
     }
@@ -122,6 +99,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.keyboard_alt_outlined, color: AppColors.primaryStrong),
@@ -134,18 +112,18 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter the 8 to 13-digit barcode number printed on packaging:',
+              'Enter barcode digits or packaging code:',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: textController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
               autofocus: true,
-              maxLength: 14,
+              maxLength: 24,
               decoration: InputDecoration(
                 hintText: 'e.g. 8901030383848',
-                labelText: 'Barcode Number',
+                labelText: 'Barcode Code',
                 prefixIcon: const Icon(Icons.qr_code_2, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),
@@ -181,7 +159,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       _hasScanned = true;
       Navigator.of(context).pop(result);
     } else if (!_cameraPermissionGranted && mounted) {
-      // If camera was denied and user cancelled manual entry, close scanner screen
       Navigator.of(context).pop();
     }
   }
@@ -189,8 +166,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final scanBoxWidth = screenSize.width * 0.78;
-    final scanBoxHeight = scanBoxWidth * 0.65;
+    final scanBoxWidth = screenSize.width * 0.82;
+    final scanBoxHeight = scanBoxWidth * 0.60;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -263,15 +240,21 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                       ],
                     ),
                   ),
-                  // Green/Primary viewfinder border
+                  // Green viewfinder border with shadow
                   Align(
                     alignment: Alignment.center,
                     child: Container(
                       width: scanBoxWidth,
                       height: scanBoxHeight,
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.primary, width: 2.5),
+                        border: Border.all(color: AppColors.primaryStrong, width: 2.5),
                         borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryStrong.withOpacity(0.3),
+                            blurRadius: 12,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -292,8 +275,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   Text(
-                    'Scan Barcode',
-                    style: AppTextStyles.titleMedium.copyWith(color: Colors.white),
+                    'Scan Barcode / QR',
+                    style: AppTextStyles.titleMedium.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   if (_cameraPermissionGranted)
                     IconButton(
@@ -321,52 +304,40 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                     decoration: BoxDecoration(
-                      color: _isReadyToScan ? AppColors.primaryStrong.withOpacity(0.9) : Colors.black.withOpacity(0.75),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _isReadyToScan ? Colors.white30 : Colors.amber.withOpacity(0.5),
-                        width: 1,
-                      ),
+                      color: AppColors.primaryStrong.withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white30, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (!_isReadyToScan) ...[
-                          const SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                        Icon(Icons.qr_code_scanner, size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Point camera at barcode on packaging',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Align camera... Ready in 1 second',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: Colors.amber,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ] else ...[
-                          const Icon(Icons.qr_code_scanner, size: 14, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Align full barcode inside the box',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: Colors.white.withOpacity(0.18),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -376,7 +347,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                     ),
                     onPressed: _showManualEntryDialog,
                     icon: const Icon(Icons.keyboard_alt_outlined, size: 20),
-                    label: const Text('Enter barcode manually'),
+                    label: const Text('Enter code manually'),
                   ),
                 ],
               ),

@@ -110,10 +110,120 @@ class OpenFoodFactsService {
         imageUrl: imageUrl?.toString(),
       );
     } catch (_) {
-      // Graceful fallback on network timeout or parse failure
       return null;
     }
   }
+
+  /// Looks up product metadata with dual resolution:
+  /// 1. Open Food Facts (fast, free public database)
+  /// 2. Dateora Gemini AI Proxy backend fallback (resolves Indian & global retail products)
+  static Future<BarcodeProduct?> lookupWithAiFallback(
+    String barcode, {
+    String? directApiKey,
+    String proxyBaseUrl = 'https://dateora.onrender.com/api',
+  }) async {
+    final cleanCode = barcode.trim();
+    if (cleanCode.isEmpty) return null;
+
+    // 1. Try Open Food Facts first
+    try {
+      final offProduct = await lookupBarcode(cleanCode);
+      if (offProduct != null &&
+          offProduct.displayName.trim().isNotEmpty) {
+        return offProduct;
+      }
+    } catch (_) {}
+
+    // 2. Try Dateora Gemini Proxy Backend
+    try {
+      final proxyUri = Uri.parse('$proxyBaseUrl/ai/barcode');
+      final response = await http
+          .post(
+            proxyUri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'barcode': cleanCode}),
+          )
+          .timeout(const Duration(seconds: 7));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final p = body['product'];
+        if (p != null && p is Map) {
+          final pName = p['productName']?.toString();
+          if (pName != null && pName.trim().isNotEmpty) {
+            final cat = mapToPresetCategory(
+              p['category']?.toString(),
+              pName,
+              null,
+            );
+            double? qty;
+            if (p['quantity'] != null) {
+              qty = double.tryParse(p['quantity'].toString());
+            }
+            return BarcodeProduct(
+              barcode: cleanCode,
+              productName: pName.trim(),
+              brand: p['brand']?.toString(),
+              category: cat,
+              quantity: qty,
+              unit: p['unit']?.toString(),
+            );
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Try Direct Gemini AI if user provided a key
+    if (directApiKey != null && directApiKey.trim().isNotEmpty) {
+      try {
+        final key = directApiKey.trim();
+        final url = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$key',
+        );
+        final prompt =
+            'Identify consumer product for barcode: "$cleanCode". Return JSON: {"productName": string or null, "brand": string or null, "category": string, "quantity": number or null, "unit": string or null}';
+        final resp = await http
+            .post(
+              url,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'contents': [
+                  {
+                    'parts': [{'text': prompt}]
+                  }
+                ],
+                'generationConfig': {
+                  'temperature': 0.1,
+                  'responseMimeType': 'application/json'
+                },
+              }),
+            )
+            .timeout(const Duration(seconds: 8));
+
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          final rawText = data?['candidates']?[0]?['content']?['parts']?[0]?['text'];
+          if (rawText != null) {
+            final p = jsonDecode(rawText);
+            final pName = p['productName']?.toString();
+            if (pName != null && pName.trim().isNotEmpty) {
+              return BarcodeProduct(
+                barcode: cleanCode,
+                productName: pName.trim(),
+                brand: p['brand']?.toString(),
+                category: mapToPresetCategory(p['category']?.toString(), pName, null),
+                quantity: double.tryParse(p['quantity']?.toString() ?? ''),
+                unit: p['unit']?.toString(),
+              );
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
 
   /// Maps Open Food Facts categories and product names directly to Dateora's preset category IDs:
   /// 'groceries', 'medicine', 'skincare', 'dairy', 'household', 'beverages', 'pantry'

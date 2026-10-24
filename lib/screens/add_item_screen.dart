@@ -725,20 +725,81 @@ class _AddItemScreenState extends State<AddItemScreen> {
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
 
-    if (barcode == null || barcode.isEmpty) return;
+    if (barcode == null || barcode.trim().isEmpty) return;
+    final cleanBarcode = barcode.trim();
 
-    final info = await OpenFoodFactsService.lookupBarcode(barcode);
+    if (!mounted) return;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final String? userKey = settings.geminiApiKey.isNotEmpty ? settings.geminiApiKey : null;
+
+    // Sleek loading dialog with spinner while looking up barcode
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.primaryStrong,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Looking up barcode details...',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    BarcodeProduct? info;
+    try {
+      info = await OpenFoodFactsService.lookupWithAiFallback(
+        cleanBarcode,
+        directApiKey: userKey,
+      );
+    } catch (_) {}
+
     AnalyticsService.instance.logBarcodeScanUsed(success: info != null);
+
+    // Close loading dialog safely
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
     if (!mounted) return;
 
-    if (info != null) {
+    if (info != null && info.displayName.trim().isNotEmpty) {
       _addedMethod = 'barcode';
       setState(() {
-        final fullName = info.displayName;
-        if (fullName.isNotEmpty) {
-          _nameController.text = fullName;
-          _aiFilledFields.add('name');
-        }
+        _nameController.text = info!.displayName;
+        _aiFilledFields.add('name');
+
         if (info.category != null && info.category!.isNotEmpty) {
           _selectedCategory = info.category!;
           _aiFilledFields.add('category');
@@ -752,19 +813,201 @@ class _AddItemScreenState extends State<AddItemScreen> {
           _aiFilledFields.add('unit');
         }
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.primaryStrong,
-          content: Text('Found "${info.displayName}" from Open Food Facts!'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Found "${info.displayName}"!',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product not found in Open Food Facts. Please enter details manually.'),
-        ),
-      );
+      // Product not in databases: Show quick auto-suggestion bottom sheet so user doesn't have to type!
+      _showBarcodeSuggestionBottomSheet(cleanBarcode);
     }
+  }
+
+  void _showBarcodeSuggestionBottomSheet(String barcode) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryStrong.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.qr_code_2_rounded, color: AppColors.primaryStrong, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Barcode Scanned ($barcode)',
+                          style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Select a quick category & name (no typing needed):',
+                          style: AppTextStyles.caption.copyWith(
+                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text('1. Quick Category:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: CategoryModel.presetCategories.map((cat) {
+                  final isSelected = _selectedCategory == cat.id;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = cat.id;
+                        _aiFilledFields.add('category');
+                        _addedMethod = 'barcode';
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? cat.color.withOpacity(0.2)
+                            : (isDark ? AppColors.darkSurface : AppColors.lightBg),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(
+                          color: isSelected ? cat.color : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(cat.icon, size: 14, color: cat.color),
+                          const SizedBox(width: 6),
+                          Text(
+                            cat.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? cat.color : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text('2. Quick Item Name:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  'Milk',
+                  'Bread',
+                  'Curd',
+                  'Butter',
+                  'Paneer',
+                  'Biscuits',
+                  'Tea',
+                  'Coffee',
+                  'Medicine',
+                  'Soap',
+                  'Shampoo',
+                  'Snacks',
+                ].map((name) {
+                  return ActionChip(
+                    label: Text(name),
+                    labelStyle: const TextStyle(fontSize: 12),
+                    backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightBg,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _nameController.text = name;
+                        _aiFilledFields.add('name');
+                        _addedMethod = 'barcode';
+                        // Auto-assign matching category
+                        if (['Milk', 'Curd', 'Butter', 'Paneer'].contains(name)) {
+                          _selectedCategory = 'dairy';
+                        } else if (['Tea', 'Coffee'].contains(name)) {
+                          _selectedCategory = 'beverages';
+                        } else if (['Soap', 'Shampoo'].contains(name)) {
+                          _selectedCategory = 'skincare';
+                        } else if (name == 'Medicine') {
+                          _selectedCategory = 'medicine';
+                        } else {
+                          _selectedCategory = 'groceries';
+                        }
+                        _aiFilledFields.add('category');
+                      });
+                      Navigator.pop(ctx);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _selectCustomDate() async {
