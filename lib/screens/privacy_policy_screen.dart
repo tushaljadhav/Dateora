@@ -106,7 +106,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _buildFeatureChip(Icons.storage_outlined, '100% On-Device DB', isDark),
-                    _buildFeatureChip(Icons.person_off_outlined, 'No Account Needed', isDark),
+                    _buildFeatureChip(Icons.person_outline, 'No Account Needed (v1.0)', isDark),
                     _buildFeatureChip(Icons.shield_outlined, 'Zero Data Brokering', isDark),
                   ],
                 ),
@@ -119,9 +119,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
           // ─── Section 1: Local Storage ───
           _buildLegalCard(
             sectionNumber: '1',
-            title: 'Overview & On-Device Storage',
+            title: 'Overview & Account Roadmap',
             content:
-                'Dateora is an offline-first mobile application. All items, expiration dates, purchase dates, categories, quantities, and photos are saved locally in the secure SQLite database on your device.\n\nNo mandatory accounts, passwords, email addresses, or phone numbers are ever required.',
+                'Dateora is an offline-first mobile application. All items, expiration dates, purchase dates, categories, quantities, and photos are saved locally in the secure SQLite database on your device.\n\n• Current Release (v1.0): No mandatory accounts, passwords, or phone numbers are required to track expiry dates.\n\n• Future Cloud & Subscription Roadmap: In upcoming updates, as Dateora introduces multi-device cloud synchronization, family sharing, and premium subscription tiers, users will have the option to create a secure account (via email or OAuth) to manage their subscriptions. Cloud data will be encrypted and users can permanently delete their account and cloud data anytime.',
             isDark: isDark,
           ),
 
@@ -273,7 +273,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             sectionNumber: '8',
             title: 'Developer Contact & Inquiries',
             content:
-                'Developer: Tushal Jadhav\nApplication: Dateora — Smart Expiry Tracker\nSupport Email: tushaljadhav.dev@gmail.com\nOfficial Website: https://dateora.onrender.com',
+                'Developer: Tushal Jadhav\nApplication: Dateora — Smart Expiry Tracker\nSupport Email: tushaljadhav123@gmail.com\nOfficial Website: https://dateora.onrender.com',
             isDark: isDark,
           ),
 

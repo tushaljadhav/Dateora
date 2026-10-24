@@ -75,17 +75,11 @@ function renderPrivacyPolicyHtml() {
       text-decoration: none;
     }
 
-    .nav-logo {
+    .nav-logo-svg {
       width: 32px;
       height: 32px;
-      background: var(--primary);
       border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 800;
-      font-size: 1rem;
+      flex-shrink: 0;
     }
 
     .nav-badge {
@@ -118,6 +112,21 @@ function renderPrivacyPolicyHtml() {
       box-shadow: var(--shadow-sm);
     }
 
+    .doc-header-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .doc-header-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      flex-shrink: 0;
+    }
+
     .doc-header .tag {
       display: inline-block;
       background: var(--primary-soft);
@@ -128,7 +137,6 @@ function renderPrivacyPolicyHtml() {
       font-size: 0.82rem;
       font-weight: 700;
       letter-spacing: 0.02em;
-      margin-bottom: 16px;
     }
 
     h1 {
@@ -229,6 +237,13 @@ function renderPrivacyPolicyHtml() {
       border-radius: 6px;
       font-size: 0.8rem;
       font-weight: 700;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 20px 0 10px;
     }
 
     p {
@@ -366,11 +381,23 @@ function renderPrivacyPolicyHtml() {
 </head>
 <body>
 
-  <!-- Top Navigation -->
+  <!-- Top Navigation with Official App Logo -->
   <nav class="top-nav">
     <div class="nav-container">
       <a href="/" class="nav-brand">
-        <div class="nav-logo">D</div>
+        <svg class="nav-logo-svg" width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="dateoraNavBg" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#3566FF"/>
+              <stop offset="45%" stop-color="#4A65FF"/>
+              <stop offset="100%" stop-color="#7E54FF"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="230" fill="url(#dateoraNavBg)"/>
+          <path d="M 689 603 A 220 220 0 1 1 653 399" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round"/>
+          <path d="M 428 506 L 500 578 L 652 426" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="722" cy="286" r="64" fill="#FF5858"/>
+        </svg>
         <span>Dateora</span>
       </a>
       <div class="nav-badge">
@@ -381,9 +408,26 @@ function renderPrivacyPolicyHtml() {
 
   <main class="main-wrap">
 
-    <!-- Document Header -->
+    <!-- Document Header with Official Icon -->
     <header class="doc-header">
-      <div class="tag">Privacy Policy</div>
+      <div class="doc-header-top">
+        <svg class="doc-header-logo" width="52" height="52" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="dateoraHeadBg" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#3566FF"/>
+              <stop offset="45%" stop-color="#4A65FF"/>
+              <stop offset="100%" stop-color="#7E54FF"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="230" fill="url(#dateoraHeadBg)"/>
+          <path d="M 689 603 A 220 220 0 1 1 653 399" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round"/>
+          <path d="M 428 506 L 500 578 L 652 426" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="722" cy="286" r="64" fill="#FF5858"/>
+        </svg>
+        <div>
+          <div class="tag">Privacy Policy</div>
+        </div>
+      </div>
       <h1>Dateora Smart Expiry Tracker</h1>
       <p style="font-size: 1.05rem; color: #475569; margin-bottom: 16px;">
         Official Privacy Policy and Data Protection Notice for users of Dateora.
@@ -391,8 +435,9 @@ function renderPrivacyPolicyHtml() {
       <div class="doc-meta">
         <div><strong>Effective Date:</strong> October 24, 2026</div>
         <div><strong>Developer:</strong> Tushal Jadhav</div>
+        <div><strong>Contact:</strong> tushaljadhav123@gmail.com</div>
         <div><strong>Package Name:</strong> com.dateora.dateora</div>
-        <div><strong>Version:</strong> 1.0.0</div>
+        <div><strong>Current Version:</strong> 1.0.0</div>
       </div>
     </header>
 
@@ -400,13 +445,13 @@ function renderPrivacyPolicyHtml() {
     <div class="summary-grid">
       <div class="summary-card">
         <div class="summary-icon">&#128274;</div>
-        <div class="summary-title">100% On-Device Database</div>
-        <div class="summary-desc">Your groceries, dates, photos, and quantities stay strictly on your phone in local SQLite storage.</div>
+        <div class="summary-title">On-Device Local Database</div>
+        <div class="summary-desc">Currently, all your groceries, dates, photos, and quantities stay strictly on your phone in local SQLite storage.</div>
       </div>
       <div class="summary-card">
-        <div class="summary-icon">&#128683;</div>
-        <div class="summary-title">No Account Required</div>
-        <div class="summary-desc">No mandatory login, no email signups, no phone numbers, and no passwords needed to track expiry dates.</div>
+        <div class="summary-icon">&#128100;</div>
+        <div class="summary-title">No Account Needed (v1.0)</div>
+        <div class="summary-desc">Start tracking immediately without registration. Optional accounts will be introduced in future updates for cloud backup & subscriptions.</div>
       </div>
       <div class="summary-card">
         <div class="summary-icon">&#128737;</div>
@@ -419,11 +464,21 @@ function renderPrivacyPolicyHtml() {
     <article class="section-card">
       <h2><span class="num">1</span> Overview & Architecture Philosophy</h2>
       <p>
-        Dateora ("we", "our", or "the application") is an offline-first mobile utility designed to assist users in tracking household expiration dates, minimizing perishable waste, and organizing food, medicine, and personal care inventory.
+        Dateora ("we", "our", or "the application") is a smart mobile utility designed to assist users in tracking household expiration dates, minimizing perishable waste, and organizing food, medicine, and personal care inventory.
       </p>
       <p>
-        Most mobile applications stream user inventory to centralized cloud servers. In contrast, Dateora was engineered from day one with an <strong>offline-first local architecture</strong>: your personal buying habits, medicine regimens, and dietary selections remain stored strictly inside the private sandbox storage of your physical device.
+        In the current release (v1.0), Dateora functions on an <strong>offline-first local architecture</strong>: your personal buying habits, medicine regimens, and dietary selections remain stored inside the private sandbox storage of your physical device.
       </p>
+
+      <h3>1.1 Future Account Registration & Premium Subscription Services</h3>
+      <p>
+        Please note that the current no-account requirement is tailored for Dateora v1.0 local usage. As our user community grows and we introduce upcoming multi-device cloud synchronization, automated family sharing, and premium subscription tiers:
+      </p>
+      <ul>
+        <li>Users will have the option to register a secure account (via email or OAuth sign-in) to authenticate and manage their subscriptions.</li>
+        <li>Account and subscription transactions will be processed securely through Google Play Billing with industry-standard encryption.</li>
+        <li>Users will always maintain full control to cancel subscriptions, export their inventory, or permanently delete their cloud account and all associated data at any time.</li>
+      </ul>
     </article>
 
     <!-- Section 2 -->
@@ -584,7 +639,7 @@ function renderPrivacyPolicyHtml() {
       <div class="contact-card">
         <p><strong>Developer:</strong> Tushal Jadhav</p>
         <p><strong>Application:</strong> Dateora — Smart Expiry Tracker</p>
-        <p><strong>Privacy & Support Email:</strong> <a href="mailto:tushaljadhav.dev@gmail.com">tushaljadhav.dev@gmail.com</a></p>
+        <p><strong>Privacy & Support Email:</strong> <a href="mailto:tushaljadhav123@gmail.com">tushaljadhav123@gmail.com</a></p>
         <p><strong>Official Web Portal:</strong> <a href="https://dateora.onrender.com" target="_blank">https://dateora.onrender.com</a></p>
       </div>
     </article>
