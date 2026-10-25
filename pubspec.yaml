@@ -87,6 +87,7 @@ flutter:
     - assets/
     - assets/illustrations/
     - assets/logo/
+    - assets/demo/
 
 
   # To add custom fonts to your application, add a fonts section here,

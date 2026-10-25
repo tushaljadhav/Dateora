@@ -193,7 +193,7 @@ class ItemsProvider with ChangeNotifier {
     await loadItems();
   }
 
-  /// Populates realistic grocery, dairy, and medicine items for Play Store screenshots
+  /// Populates realistic grocery, dairy, and medicine items with high-res photos for Play Store screenshots
   Future<void> loadSampleData() async {
     final now = DateTime.now();
     final samples = [
@@ -205,6 +205,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 1.0,
         'unit': 'L',
         'price': 65.0,
+        'photoUri': 'assets/demo/milk.jpg',
       },
       {
         'name': 'Greek Yogurt Tub',
@@ -214,6 +215,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 400.0,
         'unit': 'g',
         'price': 120.0,
+        'photoUri': 'assets/demo/yogurt.jpg',
       },
       {
         'name': 'Multi-Grain Bread',
@@ -223,6 +225,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 1.0,
         'unit': 'pack',
         'price': 50.0,
+        'photoUri': 'assets/demo/bread.jpg',
       },
       {
         'name': 'Fresh Strawberries',
@@ -232,6 +235,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 250.0,
         'unit': 'g',
         'price': 140.0,
+        'photoUri': 'assets/demo/strawberries.jpg',
       },
       {
         'name': 'Farm Fresh Eggs (12-pack)',
@@ -241,6 +245,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 12.0,
         'unit': 'pcs',
         'price': 110.0,
+        'photoUri': 'assets/demo/eggs.jpg',
       },
       {
         'name': 'Paracetamol 500mg',
@@ -250,15 +255,7 @@ class ItemsProvider with ChangeNotifier {
         'quantity': 10.0,
         'unit': 'tablets',
         'price': 35.0,
-      },
-      {
-        'name': 'Organic Green Tea',
-        'category': 'beverages',
-        'expiryDate': now.add(const Duration(days: 90)).toIso8601String(),
-        'location': 'Pantry Cabinet',
-        'quantity': 25.0,
-        'unit': 'bags',
-        'price': 220.0,
+        'photoUri': 'assets/demo/medicine.jpg',
       },
     ];
 
@@ -267,6 +264,7 @@ class ItemsProvider with ChangeNotifier {
         name: s['name'] as String,
         category: s['category'] as String,
         expiryDate: s['expiryDate'] as String,
+        photoUri: s['photoUri'] as String?,
         location: s['location'] as String?,
         quantity: s['quantity'] as double?,
         unit: s['unit'] as String?,

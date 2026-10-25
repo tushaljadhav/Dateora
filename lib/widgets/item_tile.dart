@@ -32,7 +32,8 @@ class ItemTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final hasPhoto = item.photoUri != null && File(item.photoUri!).existsSync();
+    final isAssetPhoto = item.photoUri != null && item.photoUri!.startsWith('assets/');
+    final hasFilePhoto = item.photoUri != null && !isAssetPhoto && File(item.photoUri!).existsSync();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.itemGap),
@@ -75,14 +76,21 @@ class ItemTile extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(13),
-                  child: hasPhoto
-                      ? Image.file(
-                          File(item.photoUri!),
+                  child: isAssetPhoto
+                      ? Image.asset(
+                          item.photoUri!,
                           width: 58,
                           height: 58,
                           fit: BoxFit.cover,
                         )
-                      : CategoryBadge(categoryId: item.category, size: 58),
+                      : (hasFilePhoto
+                          ? Image.file(
+                              File(item.photoUri!),
+                              width: 58,
+                              height: 58,
+                              fit: BoxFit.cover,
+                            )
+                          : CategoryBadge(categoryId: item.category, size: 58)),
                 ),
               ),
             ),

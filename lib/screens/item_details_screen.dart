@@ -61,7 +61,9 @@ class ItemDetailsScreen extends StatelessWidget {
 
     final status = item.evaluateStatus();
     final cat = CategoryModel.getById(item.category);
-    final hasPhoto = item.photoUri != null && File(item.photoUri!).existsSync();
+    final isAssetPhoto = item.photoUri != null && item.photoUri!.startsWith('assets/');
+    final hasFilePhoto = item.photoUri != null && !isAssetPhoto && File(item.photoUri!).existsSync();
+    final hasPhoto = isAssetPhoto || hasFilePhoto;
 
     // Format expiry date cleanly
     DateTime? parsedExpiry;
@@ -251,6 +253,7 @@ class ItemDetailsScreen extends StatelessWidget {
     bool isDark,
   ) {
     if (hasPhoto) {
+      final isAsset = item.photoUri != null && item.photoUri!.startsWith('assets/');
       return Container(
         height: 240,
         decoration: BoxDecoration(
@@ -270,10 +273,15 @@ class ItemDetailsScreen extends StatelessWidget {
             children: [
               Hero(
                 tag: 'item_photo_${item.id}',
-                child: Image.file(
-                  File(item.photoUri!),
-                  fit: BoxFit.cover,
-                ),
+                child: isAsset
+                    ? Image.asset(
+                        item.photoUri!,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.file(
+                        File(item.photoUri!),
+                        fit: BoxFit.cover,
+                      ),
               ),
               // Top & bottom gradient scrims
               Container(
