@@ -52,10 +52,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final now = DateTime.now();
     final isCurrentMonth = _currentMonth.year == now.year && _currentMonth.month == now.month;
 
-    // Map active items by date string (YYYY-MM-DD)
+    // Normalize raw expiry dates (YYYY-MM-DD or ISO8601) to YYYY-MM-DD
+    String normalizeDate(String raw) {
+      try {
+        final d = DateTime.parse(raw);
+        return DateFormat('yyyy-MM-dd').format(d);
+      } catch (_) {
+        return raw.length >= 10 ? raw.substring(0, 10) : raw;
+      }
+    }
+
+    // Map active items by normalized date string (YYYY-MM-DD)
     final Map<String, List<Item>> dateMap = {};
     for (final item in provider.activeItems) {
-      dateMap.putIfAbsent(item.expiryDate, () => []).add(item);
+      final key = normalizeDate(item.expiryDate);
+      dateMap.putIfAbsent(key, () => []).add(item);
     }
 
     // Filter active items belonging to _currentMonth, sorted by date

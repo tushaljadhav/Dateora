@@ -251,7 +251,7 @@ class HomeScreen extends StatelessWidget {
 
                   const SizedBox(height: AppSpacing.md),
 
-                  // Bachat Card (Task 4)
+                  // ─── Bachat Tracker Card (High-Impact UI) ───
                   InkWell(
                     borderRadius: AppRadius.cardRadius,
                     onTap: () {
@@ -261,24 +261,24 @@ class HomeScreen extends StatelessWidget {
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [const Color(0xFF132E27), const Color(0xFF0F172A)]
-                              : [AppColors.primarySoft, Colors.white],
+                              ? [const Color(0xFF0F2E23), const Color(0xFF0F172A)]
+                              : [const Color(0xFFE8FDF0), const Color(0xFFF7FDF9), Colors.white],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: AppRadius.cardRadius,
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(isDark ? 0.35 : 0.25),
-                          width: 1.2,
+                          color: AppColors.primaryStrong.withOpacity(isDark ? 0.4 : 0.3),
+                          width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.08),
-                            blurRadius: 14,
+                            color: AppColors.primaryStrong.withOpacity(0.09),
+                            blurRadius: 18,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -286,159 +286,274 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Header: Piggy Icon + Title + Details Arrow
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(6),
+                                    padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(8),
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF22C55E).withOpacity(0.3),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                    child: const Icon(Icons.savings_rounded, color: Colors.white, size: 16),
+                                    child: const Icon(Icons.savings_rounded, color: Colors.white, size: 18),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l10n?.homeBachatTitle ?? 'Bachat Tracker',
-                                    style: AppTextStyles.titleSmall.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryStrong,
-                                    ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n?.homeBachatTitle ?? 'Bachat Tracker',
+                                        style: AppTextStyles.titleMedium.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark ? Colors.white : AppColors.primaryDark,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Smart Expiry Savings',
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryStrong.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: AppColors.primaryStrong.withOpacity(isDark ? 0.2 : 0.12),
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                                  border: Border.all(
+                                    color: AppColors.primaryStrong.withOpacity(0.3),
+                                    width: 1,
+                                  ),
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Details',
-                                      style: AppTextStyles.caption.copyWith(
+                                      'Report',
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w800,
                                         color: AppColors.primaryStrong,
                                       ),
                                     ),
-                                    const SizedBox(width: 2),
-                                    const Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.primaryStrong),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.primaryStrong),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+
+                          const SizedBox(height: 16),
+
+                          // Hero Saved Number & Trend Capsule
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TOTAL SAVED THIS MONTH',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.6,
+                                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '₹${thisMonthSavings.savedAmount.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primaryStrong,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (thisMonthSavings.savedAmount > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.statusSafe.withOpacity(isDark ? 0.2 : 0.12),
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    border: Border.all(
+                                      color: AppColors.statusSafe.withOpacity(0.35),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.trending_up_rounded, size: 15, color: AppColors.statusSafe),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '₹${thisMonthSavings.netSavings.toStringAsFixed(0)} Net',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.statusSafe,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: (isDark ? Colors.white : Colors.black).withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                  ),
+                                  child: Text(
+                                    'Ready to track',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Dual Metric Cards: Consumed vs Wasted
                           Row(
                             children: [
+                              // 1. Saved / Consumed Box
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppColors.statusSafe.withOpacity(isDark ? 0.15 : 0.08),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: AppColors.statusSafe.withOpacity(isDark ? 0.18 : 0.08),
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.statusSafe.withOpacity(0.2),
+                                      color: AppColors.statusSafe.withOpacity(0.3),
                                       width: 1,
                                     ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        l10n?.homeBachatSaved ?? 'Saved',
-                                        style: AppTextStyles.caption.copyWith(
-                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.statusSafe),
+                                          const SizedBox(width: 5),
+                                          Flexible(
+                                            child: Text(
+                                              'Consumed Safe',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 6),
                                       Text(
                                         '₹${thisMonthSavings.savedAmount.toStringAsFixed(0)}',
-                                        style: AppTextStyles.titleMedium.copyWith(
-                                          color: AppColors.statusSafe,
+                                        style: const TextStyle(
+                                          fontSize: 18,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 17,
+                                          color: AppColors.statusSafe,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${thisMonthSavings.usedCount} ${thisMonthSavings.usedCount == 1 ? "item" : "items"} saved',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+
+                              const SizedBox(width: 10),
+
+                              // 2. Disposed / Wasted Box
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppColors.statusDanger.withOpacity(isDark ? 0.15 : 0.08),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: AppColors.statusDanger.withOpacity(isDark ? 0.18 : 0.08),
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.statusDanger.withOpacity(0.2),
+                                      color: AppColors.statusDanger.withOpacity(0.3),
                                       width: 1,
                                     ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        l10n?.homeBachatWasted ?? 'Wasted',
-                                        style: AppTextStyles.caption.copyWith(
-                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.statusDanger),
+                                          const SizedBox(width: 5),
+                                          Flexible(
+                                            child: Text(
+                                              'Spoiled / Wasted',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 6),
                                       Text(
                                         '₹${thisMonthSavings.wastedAmount.toStringAsFixed(0)}',
-                                        style: AppTextStyles.titleMedium.copyWith(
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
                                           color: thisMonthSavings.wastedAmount > 0
                                               ? AppColors.statusDanger
-                                              : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 17,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryStrong.withOpacity(isDark ? 0.15 : 0.08),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppColors.primaryStrong.withOpacity(0.2),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n?.bachatItemsUsed ?? 'Used',
-                                        style: AppTextStyles.caption.copyWith(
-                                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
+                                              : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                                         ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${thisMonthSavings.usedCount}',
-                                        style: AppTextStyles.titleMedium.copyWith(
-                                          color: AppColors.primaryStrong,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 17,
+                                        '${thisMonthSavings.disposedCount} ${thisMonthSavings.disposedCount == 1 ? "item" : "items"} lost',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                                         ),
                                       ),
                                     ],
@@ -447,24 +562,62 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                size: 12,
-                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+
+                          const SizedBox(height: 14),
+
+                          // Efficiency Progress Indicator or Encouraging State
+                          if (thisMonthSavings.totalItems > 0) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              child: LinearProgressIndicator(
+                                value: (thisMonthSavings.savedAmount + thisMonthSavings.wastedAmount) > 0
+                                    ? (thisMonthSavings.savedAmount /
+                                        (thisMonthSavings.savedAmount + thisMonthSavings.wastedAmount))
+                                    : 1.0,
+                                minHeight: 6,
+                                backgroundColor: AppColors.statusDanger.withOpacity(0.25),
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryStrong),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                l10n?.homeBachatEstimated ?? 'Estimated based on entered prices',
-                                style: AppTextStyles.caption.copyWith(
-                                  fontSize: 11,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.eco_rounded, size: 13, color: AppColors.primaryStrong),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    '${((thisMonthSavings.savedAmount / ((thisMonthSavings.savedAmount + thisMonthSavings.wastedAmount) > 0 ? (thisMonthSavings.savedAmount + thisMonthSavings.wastedAmount) : 1)) * 100).toInt()}% of food & supplies saved before expiry!',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 13,
                                   color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    'Mark items as "Consumed" to watch your monthly Bachat grow!',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

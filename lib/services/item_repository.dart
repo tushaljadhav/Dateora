@@ -39,6 +39,8 @@ class ItemRepository {
     String? notes,
     List<int>? reminderOffsets,
     double? price,
+    String status = 'active',
+    String? statusChangedAt,
     String dailyNotificationTime = '09:00',
   }) async {
     final now = DateTime.now().toIso8601String();
@@ -53,8 +55,8 @@ class ItemRepository {
       location: location,
       notes: notes,
       reminderOffsets: reminderOffsets ?? [3],
-      status: 'active',
-      statusChangedAt: null,
+      status: status,
+      statusChangedAt: statusChangedAt,
       price: price,
       createdAt: now,
       updatedAt: now,
@@ -62,16 +64,25 @@ class ItemRepository {
 
     await _db.insertItem(item);
 
-    // Schedule notifications and persist record (safely caught so DB save is never blocked)
-    try {
-      final records = await _notifications.scheduleItemReminders(
-        item,
-        dailyNotificationTime: dailyNotificationTime,
-      );
-      await _db.replaceNotifications(item.id, records);
-    } catch (_) {}
+    // Schedule notifications only for active items
+    if (status == 'active') {
+      try {
+        final records = await _notifications.scheduleItemReminders(
+          item,
+          dailyNotificationTime: dailyNotificationTime,
+        );
+        await _db.replaceNotifications(item.id, records);
+      } catch (_) {}
+    }
 
     return item;
+  }
+
+  Future<void> clearAllItems() async {
+    try {
+      await _notifications.cancelAll();
+    } catch (_) {}
+    await _db.clearAllItems();
   }
 
   Future<Item> updateItem(

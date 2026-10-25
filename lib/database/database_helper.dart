@@ -199,6 +199,12 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> clearAllItems() async {
+    final db = await instance.database;
+    await db.delete('notification_records');
+    await db.delete('items');
+  }
+
   Future<void> clearAllData() async {
     final db = await instance.database;
     await db.delete('notification_records');

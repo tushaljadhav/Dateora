@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/item.dart';
 import '../models/status_evaluation.dart';
@@ -147,6 +148,8 @@ class ItemsProvider with ChangeNotifier {
     String? notes,
     List<int>? reminderOffsets,
     double? price,
+    String status = 'active',
+    String? statusChangedAt,
     String dailyNotificationTime = '09:00',
   }) async {
     final newItem = await _repo.addItem(
@@ -160,11 +163,18 @@ class ItemsProvider with ChangeNotifier {
       notes: notes,
       reminderOffsets: reminderOffsets,
       price: price,
+      status: status,
+      statusChangedAt: statusChangedAt,
       dailyNotificationTime: dailyNotificationTime,
     );
 
     await loadItems();
     return newItem;
+  }
+
+  Future<void> clearAllItems() async {
+    await _repo.clearAllItems();
+    await loadItems();
   }
 
   Future<Item> updateItem(Item item, {String dailyNotificationTime = '09:00'}) async {
@@ -193,104 +203,130 @@ class ItemsProvider with ChangeNotifier {
     await loadItems();
   }
 
-  /// Populates realistic grocery, dairy, and medicine items with high-res photos for Play Store screenshots
-  Future<void> loadSampleData() async {
+  /// Populates realistic grocery, dairy, household, and medicine items across staggered dates,
+  /// plus consumed and disposed items to power authentic Bachat savings and history.
+  Future<void> loadSampleData({bool clearExisting = true}) async {
+    if (clearExisting) {
+      await _repo.clearAllItems();
+    }
+
     final now = DateTime.now();
-    final samples = [
+    final dateFmt = DateFormat('yyyy-MM-dd');
+
+    // 1. Realistic Active Products (Staggered from expired to today to upcoming months)
+    final activeSamples = [
       {
-        'name': 'Organic Whole Milk',
-        'category': 'dairy',
-        'expiryDate': now.add(const Duration(days: 2)).toIso8601String(),
-        'location': 'Fridge Door',
-        'quantity': 1.0,
-        'unit': 'L',
-        'price': 65.0,
-        'photoUri': 'assets/demo/milk.jpg',
-      },
-      {
-        'name': 'Greek Yogurt Tub',
-        'category': 'dairy',
-        'expiryDate': now.add(const Duration(days: 4)).toIso8601String(),
-        'location': 'Fridge Top Shelf',
-        'quantity': 400.0,
-        'unit': 'g',
-        'price': 120.0,
-        'photoUri': 'assets/demo/yogurt.jpg',
-      },
-      {
-        'name': 'Multi-Grain Bread',
+        'name': 'Multi-Grain Sliced Bread',
         'category': 'groceries',
-        'expiryDate': now.add(const Duration(days: 3)).toIso8601String(),
+        'expiryDate': dateFmt.format(now.subtract(const Duration(days: 2))), // Expired 2 days ago
         'location': 'Kitchen Counter',
         'quantity': 1.0,
         'unit': 'pack',
         'price': 50.0,
         'photoUri': 'assets/demo/bread.jpg',
+        'notes': 'Use for toast or dispose',
+        'offsets': [3, 1],
       },
       {
-        'name': 'Fresh Strawberries',
+        'name': 'Organic Whole Milk',
+        'category': 'dairy',
+        'expiryDate': dateFmt.format(now), // Expiring Today!
+        'location': 'Fridge Door',
+        'quantity': 1.0,
+        'unit': 'L',
+        'price': 65.0,
+        'photoUri': 'assets/demo/milk.jpg',
+        'notes': 'Fresh cow milk - finish today',
+        'offsets': [1, 0],
+      },
+      {
+        'name': 'Greek Yogurt Tub (400g)',
+        'category': 'dairy',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 2))), // In 2 days
+        'location': 'Fridge Top Shelf',
+        'quantity': 400.0,
+        'unit': 'g',
+        'price': 120.0,
+        'photoUri': 'assets/demo/yogurt.jpg',
+        'notes': 'Natural unsweetened probiotic yogurt',
+        'offsets': [3, 1],
+      },
+      {
+        'name': 'Fresh Strawberries Box',
         'category': 'groceries',
-        'expiryDate': now.add(const Duration(days: 6)).toIso8601String(),
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 5))), // In 5 days
         'location': 'Crisper Drawer',
         'quantity': 250.0,
         'unit': 'g',
         'price': 140.0,
         'photoUri': 'assets/demo/strawberries.jpg',
+        'notes': 'Sweet Mahabaleshwar berries',
+        'offsets': [3, 1],
       },
       {
         'name': 'Farm Fresh Eggs (12-pack)',
         'category': 'dairy',
-        'expiryDate': now.add(const Duration(days: 14)).toIso8601String(),
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 12))), // In 12 days
         'location': 'Fridge Middle Shelf',
         'quantity': 12.0,
         'unit': 'pcs',
         'price': 110.0,
         'photoUri': 'assets/demo/eggs.jpg',
+        'notes': 'Grade A organic white eggs',
+        'offsets': [5, 2],
       },
       {
-        'name': 'Paracetamol 500mg Tablets',
-        'category': 'medicine',
-        'expiryDate': now.add(const Duration(days: 180)).toIso8601String(),
-        'location': 'First Aid Box',
-        'quantity': 10.0,
-        'unit': 'tablets',
-        'price': 35.0,
-        'photoUri': 'assets/demo/medicine.jpg',
-      },
-      {
-        'name': 'Herbal Cough Syrup (100ml)',
-        'category': 'medicine',
-        'expiryDate': now.add(const Duration(days: 35)).toIso8601String(),
-        'location': 'Medicine Cabinet',
-        'quantity': 1.0,
-        'unit': 'bottle',
-        'price': 95.0,
-        'photoUri': 'assets/demo/cough_syrup.jpg',
-      },
-      {
-        'name': 'First Aid Antiseptic Liquid',
-        'category': 'medicine',
-        'expiryDate': now.add(const Duration(days: 365)).toIso8601String(),
-        'location': 'Bathroom Shelf',
-        'quantity': 500.0,
-        'unit': 'ml',
-        'price': 165.0,
-        'photoUri': 'assets/demo/antiseptic.jpg',
-      },
-      {
-        'name': 'Lemon Dishwashing Liquid Gel',
+        'name': 'Lemon Dishwashing Gel (500ml)',
         'category': 'household',
-        'expiryDate': now.add(const Duration(days: 120)).toIso8601String(),
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 25))), // In 25 days (late this month)
         'location': 'Kitchen Sink',
         'quantity': 500.0,
         'unit': 'ml',
         'price': 125.0,
         'photoUri': 'assets/demo/dishwash.jpg',
+        'notes': 'Degreasing concentrated formula',
+        'offsets': [7, 3],
+      },
+      {
+        'name': 'Herbal Cough Syrup (100ml)',
+        'category': 'medicine',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 45))), // Next month!
+        'location': 'Medicine Cabinet',
+        'quantity': 1.0,
+        'unit': 'bottle',
+        'price': 95.0,
+        'photoUri': 'assets/demo/cough_syrup.jpg',
+        'notes': 'Non-drowsy Ayurvedic syrup',
+        'offsets': [14, 3],
+      },
+      {
+        'name': 'Paracetamol 500mg Tablets',
+        'category': 'medicine',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 120))), // In 4 months
+        'location': 'First Aid Box',
+        'quantity': 10.0,
+        'unit': 'tablets',
+        'price': 35.0,
+        'photoUri': 'assets/demo/medicine.jpg',
+        'notes': 'Fever & headache relief strip',
+        'offsets': [30, 7],
+      },
+      {
+        'name': 'First Aid Antiseptic Liquid',
+        'category': 'medicine',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 300))), // In 10 months
+        'location': 'Bathroom Shelf',
+        'quantity': 500.0,
+        'unit': 'ml',
+        'price': 165.0,
+        'photoUri': 'assets/demo/antiseptic.jpg',
+        'notes': 'Hospital grade disinfectant',
+        'offsets': [30, 7],
       },
     ];
 
-    for (final s in samples) {
-      await addItem(
+    for (final s in activeSamples) {
+      await _repo.addItem(
         name: s['name'] as String,
         category: s['category'] as String,
         expiryDate: s['expiryDate'] as String,
@@ -299,9 +335,94 @@ class ItemsProvider with ChangeNotifier {
         quantity: s['quantity'] as double?,
         unit: s['unit'] as String?,
         price: s['price'] as double?,
-        reminderOffsets: [3, 1],
+        notes: s['notes'] as String?,
+        reminderOffsets: s['offsets'] as List<int>?,
+        status: 'active',
       );
     }
+
+    // 2. Realistic Consumed Items (Powering Bachat ₹ Saved)
+    final usedSamples = [
+      {
+        'name': 'Amul Pure Desi Ghee (1L)',
+        'category': 'dairy',
+        'expiryDate': dateFmt.format(now.subtract(const Duration(days: 4))),
+        'location': 'Pantry Top Shelf',
+        'quantity': 1.0,
+        'unit': 'L',
+        'price': 620.0,
+        'notes': 'Consumed completely before expiry',
+        'statusChangedAt': now.subtract(const Duration(days: 3)).toIso8601String(),
+      },
+      {
+        'name': 'Tata Sampann Toor Dal (1kg)',
+        'category': 'groceries',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 50))),
+        'location': 'Kitchen Cabinet',
+        'quantity': 1.0,
+        'unit': 'kg',
+        'price': 175.0,
+        'notes': 'Finished unpolished dal packet',
+        'statusChangedAt': now.subtract(const Duration(days: 2)).toIso8601String(),
+      },
+      {
+        'name': 'Dettol Handwash Refill (750ml)',
+        'category': 'household',
+        'expiryDate': dateFmt.format(now.add(const Duration(days: 80))),
+        'location': 'Washroom Cabinet',
+        'quantity': 750.0,
+        'unit': 'ml',
+        'price': 125.0,
+        'notes': 'Refilled dispenser bottles',
+        'statusChangedAt': now.subtract(const Duration(days: 1)).toIso8601String(),
+      },
+    ];
+
+    for (final u in usedSamples) {
+      await _repo.addItem(
+        name: u['name'] as String,
+        category: u['category'] as String,
+        expiryDate: u['expiryDate'] as String,
+        location: u['location'] as String?,
+        quantity: u['quantity'] as double?,
+        unit: u['unit'] as String?,
+        price: u['price'] as double?,
+        notes: u['notes'] as String?,
+        status: 'used',
+        statusChangedAt: u['statusChangedAt'] as String?,
+      );
+    }
+
+    // 3. Realistic Disposed Item (Powering Bachat ₹ Wasted)
+    final disposedSamples = [
+      {
+        'name': 'Organic Coriander & Mint Leaves',
+        'category': 'groceries',
+        'expiryDate': dateFmt.format(now.subtract(const Duration(days: 5))),
+        'location': 'Vegetable Basket',
+        'quantity': 2.0,
+        'unit': 'bunches',
+        'price': 40.0,
+        'notes': 'Spoiled due to humidity',
+        'statusChangedAt': now.subtract(const Duration(days: 3)).toIso8601String(),
+      },
+    ];
+
+    for (final d in disposedSamples) {
+      await _repo.addItem(
+        name: d['name'] as String,
+        category: d['category'] as String,
+        expiryDate: d['expiryDate'] as String,
+        location: d['location'] as String?,
+        quantity: d['quantity'] as double?,
+        unit: d['unit'] as String?,
+        price: d['price'] as double?,
+        notes: d['notes'] as String?,
+        status: 'disposed',
+        statusChangedAt: d['statusChangedAt'] as String?,
+      );
+    }
+
     await loadItems();
   }
 }
