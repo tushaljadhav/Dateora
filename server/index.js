@@ -94,6 +94,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ─── Official App Favicon / Logo Endpoint ───
+app.get(['/favicon.png', '/favicon.ico', '/assets/favicon.png', '/logo/favicon.png'], (req, res) => {
+  const p = path.join(__dirname, 'favicon.png');
+  res.setHeader('Content-Type', 'image/png');
+  res.sendFile(p);
+});
+
 // ─── Official Public Privacy Policy (Google Play Console URL) ───
 app.get(['/privacy', '/privacy-policy'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');

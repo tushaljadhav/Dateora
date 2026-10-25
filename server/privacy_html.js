@@ -1,7 +1,29 @@
-// ─── Dateora Official Public Privacy Policy (Google Play Console Compliant) ───
-// Professional, corporate, clean design matching Stripe / Apple / Linear standards.
+const fs = require('fs');
+const path = require('path');
+
+let _cachedFaviconUri = null;
+function getFaviconUri() {
+  if (_cachedFaviconUri) return _cachedFaviconUri;
+  const candidatePaths = [
+    path.join(__dirname, 'favicon.png'),
+    path.join(__dirname, '..', 'assets', 'logo', 'favicon.png'),
+    path.join(__dirname, '..', 'assets', 'favicon.png'),
+    path.join(__dirname, '..', 'web', 'favicon.png'),
+  ];
+  for (const filePath of candidatePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const b64 = fs.readFileSync(filePath).toString('base64');
+        _cachedFaviconUri = `data:image/png;base64,${b64}`;
+        return _cachedFaviconUri;
+      }
+    } catch (_) {}
+  }
+  return '/favicon.png';
+}
 
 function renderPrivacyPolicyHtml() {
+  const faviconUri = getFaviconUri();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +31,8 @@ function renderPrivacyPolicyHtml() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — Dateora Smart Expiry Tracker</title>
   <meta name="description" content="Official Privacy Policy for Dateora: Smart Expiry Tracker. Clear, transparent data practices and Google Play compliance.">
+  <link rel="icon" type="image/png" href="${faviconUri}">
+  <link rel="apple-touch-icon" href="${faviconUri}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -75,11 +99,12 @@ function renderPrivacyPolicyHtml() {
       text-decoration: none;
     }
 
-    .nav-logo-svg {
+    .nav-logo-img {
       width: 32px;
       height: 32px;
       border-radius: 8px;
       flex-shrink: 0;
+      object-fit: contain;
     }
 
     .nav-badge {
@@ -120,11 +145,12 @@ function renderPrivacyPolicyHtml() {
     }
 
     .doc-header-logo {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       border-radius: 14px;
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
       flex-shrink: 0;
+      object-fit: contain;
     }
 
     .doc-header .tag {
@@ -385,19 +411,7 @@ function renderPrivacyPolicyHtml() {
   <nav class="top-nav">
     <div class="nav-container">
       <a href="/" class="nav-brand">
-        <svg class="nav-logo-svg" width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="dateoraNavBg" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#3566FF"/>
-              <stop offset="45%" stop-color="#4A65FF"/>
-              <stop offset="100%" stop-color="#7E54FF"/>
-            </linearGradient>
-          </defs>
-          <rect width="1024" height="1024" rx="230" fill="url(#dateoraNavBg)"/>
-          <path d="M 689 603 A 220 220 0 1 1 653 399" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round"/>
-          <path d="M 428 506 L 500 578 L 652 426" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="722" cy="286" r="64" fill="#FF5858"/>
-        </svg>
+        <img class="nav-logo-img" src="${faviconUri}" width="32" height="32" alt="Dateora Logo" />
         <span>Dateora</span>
       </a>
     </div>
@@ -408,19 +422,7 @@ function renderPrivacyPolicyHtml() {
     <!-- Document Header with Official Icon -->
     <header class="doc-header">
       <div class="doc-header-top">
-        <svg class="doc-header-logo" width="52" height="52" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="dateoraHeadBg" x1="100" y1="100" x2="924" y2="924" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#3566FF"/>
-              <stop offset="45%" stop-color="#4A65FF"/>
-              <stop offset="100%" stop-color="#7E54FF"/>
-            </linearGradient>
-          </defs>
-          <rect width="1024" height="1024" rx="230" fill="url(#dateoraHeadBg)"/>
-          <path d="M 689 603 A 220 220 0 1 1 653 399" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round"/>
-          <path d="M 428 506 L 500 578 L 652 426" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="722" cy="286" r="64" fill="#FF5858"/>
-        </svg>
+        <img class="doc-header-logo" src="${faviconUri}" width="56" height="56" alt="Dateora Logo" />
         <div>
           <div class="tag">Privacy Policy</div>
         </div>
