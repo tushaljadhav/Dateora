@@ -113,19 +113,19 @@ class HomeScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                              : [const Color(0xFFEFF6FF), Colors.white],
+                              ? [AppColors.darkCard, AppColors.darkSurface]
+                              : [const Color(0xFFF0FDF4), Colors.white],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: AppRadius.cardRadius,
                         border: Border.all(
-                          color: const Color(0xFF3B82F6).withOpacity(isDark ? 0.35 : 0.25),
+                          color: AppColors.primaryStrong.withOpacity(isDark ? 0.35 : 0.25),
                           width: 1.2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF3B82F6).withOpacity(0.06),
+                            color: AppColors.primaryStrong.withOpacity(0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 3),
                           ),
@@ -137,14 +137,14 @@ class HomeScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                colors: [Color(0xFF22C55E), AppColors.primaryStrong],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  color: AppColors.primaryStrong.withOpacity(0.35),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -182,11 +182,11 @@ class HomeScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB),
+                              color: AppColors.primaryStrong,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  color: AppColors.primaryStrong.withOpacity(0.35),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),

@@ -369,44 +369,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           }
         });
 
-        if (hasValidDate) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: AppColors.primaryStrong,
-              content: Row(
-                children: [
-                  const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'AI Auto-filled: ${result.productName ?? "Item"} • ${DateFormat("dd MMM yyyy").format(_expiryDate)}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        } else {
-          // Graceful partial auto-fill notice when only product is detected
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 5),
-              backgroundColor: const Color(0xFFD97706),
-              content: Row(
-                children: [
-                  const Icon(Icons.info_outline_rounded, color: Colors.white, size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'AI detected: "${result.productName}"!\nExpiry date photo mein clear nahi mili — please date select karein ya Slot 2 mein date photo lein.',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+        if (mounted) {
+          _showAiScanConfirmationSheet(result, hasValidDate);
         }
       } else {
         // Fallback / unreadable notice
@@ -437,6 +401,339 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _scanTimer?.cancel();
       if (mounted) setState(() => _isScanningAi = false);
     }
+  }
+
+  /// Displays an interactive bottom confirmation card showing the AI-detected expiry date,
+  /// days remaining, product name, and quick confirm / adjust actions.
+  void _showAiScanConfirmationSheet(ScanResult result, bool hasValidDate) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiryOnlyDate = DateTime(_expiryDate.year, _expiryDate.month, _expiryDate.day);
+    final daysRemaining = expiryOnlyDate.difference(today).inDays;
+
+    Color badgeColor;
+    Color badgeBg;
+    String badgeText;
+
+    if (daysRemaining < 0) {
+      badgeColor = AppColors.statusDanger;
+      badgeBg = AppColors.statusDangerBg;
+      badgeText = 'Expired ${-daysRemaining}d ago';
+    } else if (daysRemaining == 0) {
+      badgeColor = AppColors.statusDanger;
+      badgeBg = AppColors.statusDangerBg;
+      badgeText = 'Expires Today!';
+    } else if (daysRemaining <= 3) {
+      badgeColor = AppColors.statusWarning;
+      badgeBg = AppColors.statusWarningBg;
+      badgeText = 'Expires in $daysRemaining days';
+    } else {
+      badgeColor = AppColors.statusSuccess;
+      badgeBg = AppColors.statusSuccessBg;
+      badgeText = 'Expires in $daysRemaining days';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            24 + MediaQuery.of(ctx).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Pull handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryStrong.withOpacity(isDark ? 0.22 : 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppColors.primaryStrong,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hasValidDate ? 'AI Expiry Date Detected!' : 'Product Detected by AI',
+                          style: AppTextStyles.titleMedium.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasValidDate
+                              ? (result.isEstimated
+                                  ? 'Estimated based on product category'
+                                  : 'Detected directly from packaging')
+                              : 'Packaging se date clear nahi mili — please choose date',
+                          style: AppTextStyles.caption.copyWith(
+                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Product Name card if detected
+              if (result.productName != null && result.productName!.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shopping_bag_outlined, size: 18, color: AppColors.primaryStrong),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          result.productName!,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (result.categoryId.isNotEmpty && result.categoryId != 'custom')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryStrong.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            result.categoryId.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryStrong,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Expiry Date Highlight Card
+              if (hasValidDate) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF14291D), const Color(0xFF0F172A)]
+                          : [const Color(0xFFF0FDF4), Colors.white],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primaryStrong.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryStrong.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryStrong.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month_rounded,
+                          color: AppColors.primaryStrong,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'DETECTED EXPIRY DATE',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: isDark ? AppColors.darkTextMuted : const Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              DateFormat('dd MMMM yyyy').format(_expiryDate),
+                              style: const TextStyle(
+                                fontSize: 17.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isDark ? badgeColor.withOpacity(0.2) : badgeBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: badgeColor.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(
+                            color: badgeColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Expiry date missing notice
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2E200B) : const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 22),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Packaging se expiry date read nahi ho paayi. Neeche "Pick Date" button daba kar date select karein.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+                      label: Text(
+                        hasValidDate ? 'Change Date' : 'Pick Date',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _selectCustomDate();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryStrong,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text(
+                        'Confirm',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showServerKeyOrLocalKeyDialog() {
@@ -1543,18 +1840,21 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ? 'AI Autofilled • ${res.isEstimated ? "Estimated Date" : "Read from Pack"}'
         : 'AI Product Detected • Expiry date needed';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: pillBg,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: pillBorder),
-      ),
-      child: Row(
-        children: [
-          Icon(hasDate ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-              size: 16, color: iconColor),
-          const SizedBox(width: 8),
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      onTap: () => _showAiScanConfirmationSheet(res, hasDate),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: pillBg,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: pillBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(hasDate ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                size: 16, color: iconColor),
+            const SizedBox(width: 8),
           Expanded(
             child: Text(
               titleText,
@@ -1580,7 +1880,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildBarcodeTopCard(bool isDark) {
