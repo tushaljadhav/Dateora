@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,17 +20,9 @@ class PermissionService {
     return await Permission.camera.isGranted;
   }
 
-  /// Check current status of Photos / Gallery permission.
+  /// System photo picker requires no runtime permissions.
   static Future<bool> isPhotosGranted() async {
-    if (!Platform.isAndroid && !Platform.isIOS) return true;
-    if (Platform.isAndroid) {
-      // Android 13+ (API 33+) uses photos, older versions use storage.
-      // Modern Android system photo picker doesn't even need runtime permission.
-      final photosStatus = await Permission.photos.status;
-      final storageStatus = await Permission.storage.status;
-      return photosStatus.isGranted || storageStatus.isGranted;
-    }
-    return await Permission.photos.isGranted;
+    return true;
   }
 
   /// Check current status of Notifications permission.
@@ -45,14 +36,9 @@ class PermissionService {
     return status.isGranted;
   }
 
-  /// Request Photos permission.
+  /// System photo picker is used for gallery selection without runtime permissions.
   static Future<bool> requestPhotos() async {
-    if (Platform.isAndroid) {
-      final statuses = await [Permission.photos, Permission.storage].request();
-      return (statuses[Permission.photos]?.isGranted ?? false) || (statuses[Permission.storage]?.isGranted ?? false);
-    }
-    final status = await Permission.photos.request();
-    return status.isGranted;
+    return true;
   }
 
   /// Request Notification permission.
@@ -60,53 +46,37 @@ class PermissionService {
     return await NotificationService.instance.requestPermissions();
   }
 
-  /// Check current status of Exact Alarm permission on Android.
+  /// Inexact alarms are used; exact alarm permission is no longer required.
   static Future<bool> isExactAlarmGranted() async {
-    return await NotificationService.instance.canScheduleExactAlarms();
+    return false;
   }
 
-  /// Request Exact Alarm permission (directs user to system settings toggle on Android 14+).
+  /// Inexact alarms are used; exact alarm permission is no longer requested.
   static Future<bool> requestExactAlarm() async {
-    return await NotificationService.instance.requestExactAlarmsPermission();
+    return false;
   }
 
-  /// Request Camera, Gallery, and Notifications in a single seamless flow.
-  /// Used in Onboarding and in Settings screen "Grant All Permissions".
+  /// Request Camera and Notifications in a single seamless flow.
+  /// Used in Settings screen "Grant All Permissions".
   static Future<Map<String, bool>> requestAllPermissions() async {
     final results = <String, bool>{
       'camera': false,
-      'photos': false,
+      'photos': true,
       'notifications': false,
     };
 
     try {
-      // 1. Request Camera and Notifications via permission_handler
+      // Request Camera and Notifications via permission_handler
       final permissionsToRequest = <Permission>[
         Permission.camera,
         Permission.notification,
       ];
 
-      if (Platform.isAndroid) {
-        permissionsToRequest.add(Permission.photos);
-        permissionsToRequest.add(Permission.storage);
-      } else if (Platform.isIOS) {
-        permissionsToRequest.add(Permission.photos);
-      }
-
       final statuses = await permissionsToRequest.request();
 
       results['camera'] = statuses[Permission.camera]?.isGranted ?? false;
       results['notifications'] = statuses[Permission.notification]?.isGranted ?? false;
-
-      if (Platform.isAndroid) {
-        final photosGranted = statuses[Permission.photos]?.isGranted ?? false;
-        final storageGranted = statuses[Permission.storage]?.isGranted ?? false;
-        results['photos'] = photosGranted || storageGranted;
-      } else if (Platform.isIOS) {
-        results['photos'] = statuses[Permission.photos]?.isGranted ?? false;
-      } else {
-        results['photos'] = true;
-      }
+      results['photos'] = true;
 
       // 2. Also ensure local notifications plugin initiates OS channel if on Android
       try {

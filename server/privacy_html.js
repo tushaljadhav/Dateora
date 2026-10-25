@@ -400,9 +400,6 @@ function renderPrivacyPolicyHtml() {
         </svg>
         <span>Dateora</span>
       </a>
-      <div class="nav-badge">
-        <span>Verified Legal Document</span>
-      </div>
     </div>
   </nav>
 
@@ -428,219 +425,218 @@ function renderPrivacyPolicyHtml() {
           <div class="tag">Privacy Policy</div>
         </div>
       </div>
-      <h1>Dateora Smart Expiry Tracker</h1>
+      <h1>Dateora: Smart Expiry Tracker</h1>
       <p style="font-size: 1.05rem; color: #475569; margin-bottom: 16px;">
-        Official Privacy Policy and Data Protection Notice for users of Dateora.
+        Privacy Policy & Data Notice for Dateora mobile application.
       </p>
       <div class="doc-meta">
-        <div><strong>Effective Date:</strong> October 24, 2026</div>
+        <div><strong>Effective Date:</strong> October 25, 2026</div>
         <div><strong>Developer:</strong> Tushal Jadhav</div>
         <div><strong>Contact:</strong> tushaljadhav123@gmail.com</div>
         <div><strong>Package Name:</strong> com.dateora.dateora</div>
-        <div><strong>Current Version:</strong> 1.0.0</div>
+        <div><strong>Version:</strong> 1.0.0</div>
       </div>
     </header>
 
-    <!-- Executive Summary Highlights -->
+    <!-- Summary Highlights -->
     <div class="summary-grid">
       <div class="summary-card">
         <div class="summary-icon">&#128274;</div>
-        <div class="summary-title">On-Device Local Database</div>
-        <div class="summary-desc">Currently, all your groceries, dates, photos, and quantities stay strictly on your phone in local SQLite storage.</div>
+        <div class="summary-title">On-Device Inventory</div>
+        <div class="summary-desc">Your inventory (item names, dates, quantities, notes, photos) is stored on your phone, not on our servers.</div>
       </div>
       <div class="summary-card">
         <div class="summary-icon">&#128100;</div>
-        <div class="summary-title">No Account Needed (v1.0)</div>
-        <div class="summary-desc">Start tracking immediately without registration. Optional accounts will be introduced in future updates for cloud backup & subscriptions.</div>
+        <div class="summary-title">No Account Needed</div>
+        <div class="summary-desc">No account, login, email or phone number is needed to track your groceries, medicines, and household items.</div>
       </div>
       <div class="summary-card">
         <div class="summary-icon">&#128737;</div>
-        <div class="summary-title">Zero Data Brokering</div>
-        <div class="summary-desc">We never sell, monetize, license, or broker your personal consumption habits to third parties or advertisers.</div>
+        <div class="summary-title">Zero Ads & No Data Selling</div>
+        <div class="summary-desc">We do not sell your data, we show no advertisements, and we do not use advertising identifiers.</div>
       </div>
     </div>
 
     <!-- Section 1 -->
     <article class="section-card">
-      <h2><span class="num">1</span> Overview & Architecture Philosophy</h2>
+      <h2><span class="num">1</span> Overview</h2>
       <p>
-        Dateora ("we", "our", or "the application") is a smart mobile utility designed to assist users in tracking household expiration dates, minimizing perishable waste, and organizing food, medicine, and personal care inventory.
+        Dateora is a mobile app that helps you track expiry dates of food, medicine and personal care items, and reminds you before they expire. It is built offline-first: your inventory is saved in a local database inside the app's private storage on your device.
       </p>
-      <p>
-        In the current release (v1.0), Dateora functions on an <strong>offline-first local architecture</strong>: your personal buying habits, medicine regimens, and dietary selections remain stored inside the private sandbox storage of your physical device.
-      </p>
-
-      <h3>1.1 Future Account Registration & Premium Subscription Services</h3>
-      <p>
-        Please note that the current no-account requirement is tailored for Dateora v1.0 local usage. As our user community grows and we introduce upcoming multi-device cloud synchronization, automated family sharing, and premium subscription tiers:
-      </p>
-      <ul>
-        <li>Users will have the option to register a secure account (via email or OAuth sign-in) to authenticate and manage their subscriptions.</li>
-        <li>Account and subscription transactions will be processed securely through Google Play Billing with industry-standard encryption.</li>
-        <li>Users will always maintain full control to cancel subscriptions, export their inventory, or permanently delete their cloud account and all associated data at any time.</li>
-      </ul>
     </article>
 
     <!-- Section 2 -->
     <article class="section-card">
-      <h2><span class="num">2</span> Information Collected & Processing Purposes</h2>
-      <p>
-        To provide its core tracking and reminder services, Dateora processes specific data categories as detailed below:
-      </p>
-
+      <h2><span class="num">2</span> Information We Handle</h2>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Data Type</th>
-              <th>Specific Elements</th>
-              <th>Processing Purpose</th>
-              <th>Retention & Storage</th>
+              <th>Data</th>
+              <th>What it includes</th>
+              <th>Why</th>
+              <th>Where it goes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Inventory Data</strong></td>
-              <td>Item name, category, expiration date, purchase date, quantity, storage location, user notes.</td>
-              <td>To organize items, display countdown days, calculate waste savings, and trigger notifications.</td>
-              <td><strong>Stored 100% locally</strong> in device SQLite database.</td>
+              <td><strong>Inventory data</strong></td>
+              <td>Item name, category, expiry date, quantity, location, notes, price (optional), reminder settings</td>
+              <td>To show your items and send reminders</td>
+              <td>Stored only on your device (local SQLite database)</td>
             </tr>
             <tr>
-              <td><strong>Images & Photos</strong></td>
-              <td>Product front photographs, packaging expiry date stamps.</td>
-              <td>To display thumbnail photos in item cards and allow AI date identification.</td>
-              <td><strong>Local device sandbox storage only</strong>. Never published to any public gallery.</td>
+              <td><strong>Photos</strong></td>
+              <td>Product photos you take or choose</td>
+              <td>To show on item cards and (optionally) for AI scan</td>
+              <td>Saved in the app's private storage on your device. Not saved to your public gallery</td>
             </tr>
             <tr>
-              <td><strong>Barcode Data</strong></td>
-              <td>EAN-13, EAN-8, UPC-A, Code 128 numerical product digits.</td>
-              <td>To retrieve standardized public product names and categories.</td>
-              <td><strong>Transient</strong>. Used only to pre-fill the name field upon scan.</td>
+              <td><strong>AI scan images</strong></td>
+              <td>1-2 compressed photos of product packaging, only when you tap "Scan with AI"</td>
+              <td>To read product name, category and expiry date</td>
+              <td>Sent over HTTPS to our server (hosted on Render), then to Google Gemini. See Section 4</td>
             </tr>
             <tr>
-              <td><strong>Technical Diagnostics</strong></td>
-              <td>Device model, Android version, crash logs, aggregate feature usage count.</td>
-              <td>To monitor app stability and fix technical bugs.</td>
-              <td><strong>Anonymous telemetry</strong> via Firebase Analytics (User can opt out anytime in Settings).</td>
+              <td><strong>Barcode number</strong></td>
+              <td>Digits of the barcode you scan</td>
+              <td>To fetch the product name</td>
+              <td>Sent to Open Food Facts. If not found there, sent to our server and Google Gemini. See Section 5</td>
+            </tr>
+            <tr>
+              <td><strong>Random install ID</strong></td>
+              <td>A random ID generated on first launch (not your Android ID or Advertising ID)</td>
+              <td>To limit AI scans per day (fair-use limit)</td>
+              <td>Stored on your device and sent to our server with AI scan and barcode requests</td>
+            </tr>
+            <tr>
+              <td><strong>Crash and usage data</strong></td>
+              <td>Crash reports, device model, Android version, app events (for example "item added", "AI scan used"), app instance ID</td>
+              <td>To find bugs and improve the app</td>
+              <td>Sent to Google Firebase (Analytics and Crashlytics). You can turn this off. See Section 6</td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <div class="callout">
-        <p><strong>Photo Privacy Guarantee:</strong> Dateora does not index, scan, or access any images in your personal photo library except the specific files you deliberately photograph or select within the app.</p>
-      </div>
+      <p style="margin-top: 16px;">
+        We do <strong>not</strong> collect your name, email, phone number, address, location, contacts, or financial information.
+      </p>
     </article>
 
     <!-- Section 3 -->
     <article class="section-card">
-      <h2><span class="num">3</span> Android Permissions & Justifications</h2>
-      <p>
-        Dateora adheres strictly to the Principle of Least Privilege. We request only runtime permissions strictly required to execute user-initiated actions:
-      </p>
+      <h2><span class="num">3</span> Android Permissions</h2>
       <ul>
-        <li>
-          <strong>Camera (<code>android.permission.CAMERA</code>):</strong> Requested when you open the Barcode Scanner or tap the camera icon to photograph product packaging. It is never accessed in the background.
-        </li>
-        <li>
-          <strong>Photo Library / Storage Access (<code>READ_MEDIA_IMAGES</code>):</strong> Requested only if you choose to attach an existing product photo from your device storage.
-        </li>
-        <li>
-          <strong>Notifications (<code>POST_NOTIFICATIONS</code>) & Exact Alarms (<code>SCHEDULE_EXACT_ALARM</code>):</strong> Required to schedule local calendar notifications that warn you before items expire. Reminders are triggered by the local operating system clock without external push notification tracking.
-        </li>
+        <li><strong>Camera:</strong> used only when you open the barcode scanner or take a product photo. Never used in the background.</li>
+        <li><strong>Notifications:</strong> used to show expiry reminders. Reminders are scheduled locally on your phone.</li>
+        <li><strong>Photos:</strong> when you attach an existing photo, Dateora uses Android's system photo picker. It does not scan or browse your gallery.</li>
+        <li><strong>Internet:</strong> needed for AI scan, barcode lookup and crash/usage reports.</li>
+        <li><strong>Run at startup:</strong> used to re-schedule your reminders after the phone restarts.</li>
+        <li><strong>Vibration:</strong> used for notification alerts.</li>
       </ul>
     </article>
 
     <!-- Section 4 -->
     <article class="section-card">
-      <h2><span class="num">4</span> AI Vision Scanning & Data Protection</h2>
+      <h2><span class="num">4</span> AI Packaging Scan (Google Gemini)</h2>
+      <p>This feature is optional. When you tap "Scan with AI":</p>
+      <ol style="padding-left: 20px; line-height: 1.6; color: var(--text-body); margin-bottom: 16px;">
+        <li>The packaging image(s) are sent over HTTPS to the Dateora server, which forwards them to the Google Gemini API.</li>
+        <li>Our server does not store the images or results. They are held in memory only while the request is processed.</li>
+        <li>Google processes the images under its own Gemini API terms: <a href="https://ai.google.dev/gemini-api/terms" target="_blank">https://ai.google.dev/gemini-api/terms</a>.</li>
+        <li>The server uses your random install ID (and IP address, in memory) only to apply daily usage limits.</li>
+        <li>The extracted name, category and date are saved on your device.</li>
+      </ol>
       <p>
-        Dateora includes an optional <strong>AI Packaging Vision Auto-Fill</strong> feature powered by Google Gemini Vision.
+        If you add your own Gemini API key in Settings, the app sends the images directly to Google using your key. The key is stored on your device in encrypted storage (Android Keystore).
       </p>
       <p>
-        When you choose to tap "Scan Packaging with AI":
+        Manual entry and barcode scanning always work without AI scan.
       </p>
-      <ul>
-        <li>Only the specific image of the product packaging and date stamp is transmitted via secure HTTPS (TLS 1.3) to the Google Gemini API.</li>
-        <li>The image is processed transiently in volatile server memory solely to recognize product title and date characters.</li>
-        <li>Google does not use images submitted via its API services to train foundational models.</li>
-        <li>Once the extracted product name and date are returned to your phone, the session ends. No photos are permanently stored on remote servers.</li>
-        <li><strong>Offline Choice:</strong> You are never required to use AI scanning. Manual entry and instant barcode scanning remain 100% accessible offline.</li>
-      </ul>
     </article>
 
     <!-- Section 5 -->
     <article class="section-card">
-      <h2><span class="num">5</span> Third-Party Service Providers</h2>
+      <h2><span class="num">5</span> Barcode Lookup</h2>
       <p>
-        We integrate with selected third-party services that comply with global data protection standards (GDPR, CCPA):
+        When you scan a barcode, the app sends the barcode digits to <a href="https://world.openfoodfacts.org" target="_blank">Open Food Facts</a>, a public non-profit database. Like any website, Open Food Facts can see your IP address. If the product is not found, the barcode digits are sent to the Dateora server, which asks Google Gemini to suggest a product name and category.
       </p>
-      <ul>
-        <li>
-          <strong>Google Play Services:</strong> Core application delivery, distribution, and in-app updates.
-        </li>
-        <li>
-          <strong>Firebase Analytics & Crashlytics (Google LLC):</strong> Collects non-identifiable, aggregated crash diagnostics and feature event metrics. Users can completely disable analytics via <em>Settings &rarr; Privacy &rarr; Help Improve Dateora</em>.
-        </li>
-        <li>
-          <strong>Open Food Facts:</strong> A non-profit public database queried anonymously with numerical barcode digits (e.g. 8901030383848) to auto-fill grocery names without user tracking.
-        </li>
-      </ul>
     </article>
 
     <!-- Section 6 -->
     <article class="section-card">
-      <h2><span class="num">6</span> User Rights, Data Control & Deletion</h2>
+      <h2><span class="num">6</span> Analytics and Crash Reports (Firebase)</h2>
       <p>
-        Because all your data is stored on your local device, you possess total sovereignty:
+        Dateora uses <strong>Google Firebase Analytics</strong> and <strong>Firebase Crashlytics</strong> to understand crashes and basic feature usage. These services use an app instance ID and collect device model, Android version, crash logs and app events. We do not send item names, notes or photos to Firebase.
       </p>
+      <div class="callout">
+        <p>This is turned <strong>on by default</strong>. You can turn it off any time: <strong>Settings &rarr; Privacy &rarr; Help improve Dateora.</strong></p>
+      </div>
       <ul>
-        <li><strong>Selective Deletion:</strong> You can edit, restore, or permanently delete any item from the inventory list or history screen at any moment.</li>
-        <li><strong>1-Click Complete Wipe:</strong> Go to <em>Settings &rarr; Danger Zone &rarr; Clear All Data</em> to permanently and irrecoverably delete all items, categories, settings, and photos from your storage.</li>
-        <li><strong>Uninstallation:</strong> Deleting the Dateora application via Android Settings automatically and immediately purges the entire SQLite database, photo cache, and all application files.</li>
+        <li>Google Privacy Policy: <a href="https://policies.google.com/privacy" target="_blank">https://policies.google.com/privacy</a></li>
+        <li>Firebase Privacy Information: <a href="https://firebase.google.com/support/privacy" target="_blank">https://firebase.google.com/support/privacy</a></li>
       </ul>
     </article>
 
     <!-- Section 7 -->
     <article class="section-card">
-      <h2><span class="num">7</span> Children's Privacy (COPPA & GDPR-K Compliance)</h2>
-      <p>
-        Dateora is a household utility application intended for general audiences. We do not knowingly solicit, collect, or store personal information from children under the age of 13 (or under 16 in the European Economic Area). If you become aware that a child has provided us with personal information, please contact us and we will promptly address the inquiry.
+      <h2><span class="num">7</span> Other Services</h2>
+      <ul>
+        <li><strong>Google Play:</strong> used to download and update the app.</li>
+        <li><strong>Render:</strong> hosts our server for AI scan and barcode fallback. It may process requests and technical logs such as IP addresses as part of hosting.</li>
+      </ul>
+      <p style="margin-top: 12px;">
+        We do not sell your data, share it for advertising, or use advertising IDs.
       </p>
     </article>
 
     <!-- Section 8 -->
     <article class="section-card">
-      <h2><span class="num">8</span> Data Security Standards</h2>
-      <p>
-        We employ industry-standard security practices to safeguard data:
-      </p>
+      <h2><span class="num">8</span> Your Choices and Deleting Data</h2>
       <ul>
-        <li>Application sandbox isolation enforced by the Android Linux security architecture.</li>
-        <li>Mandatory TLS 1.3 / HTTPS encryption for all external API network requests.</li>
-        <li>Cleartext HTTP traffic is blocked via network security configuration (<code>usesCleartextTraffic="false"</code>).</li>
+        <li><strong>Edit or delete items:</strong> any time from the item list or history.</li>
+        <li><strong>Delete all data:</strong> Settings &rarr; Danger Zone &rarr; Delete All Data removes all items, reminders, saved photos and settings from your device.</li>
+        <li><strong>Uninstalling:</strong> the app removes its local data from your device.</li>
+        <li><strong>Backup/export:</strong> you can export a JSON backup and import it later. Photos are not included in the export. Exported files are yours; keep them safe.</li>
+        <li><strong>Turn off analytics and crash reports:</strong> in Settings (Section 6).</li>
+        <li><strong>AI scan:</strong> you can choose not to use it.</li>
+        <li><strong>Questions or requests about data held by us:</strong> (for example server requests) email <a href="mailto:tushaljadhav123@gmail.com">tushaljadhav123@gmail.com</a>.</li>
       </ul>
     </article>
 
     <!-- Section 9 -->
     <article class="section-card">
-      <h2><span class="num">9</span> Changes to This Privacy Policy</h2>
-      <p>
-        We may update this Privacy Policy periodically to reflect enhancements in functionality or regulatory requirements. Any revisions will be published immediately on this URL with an updated "Effective Date". Continued use of Dateora following revisions constitutes your consent to the updated terms.
-      </p>
+      <h2><span class="num">9</span> Security</h2>
+      <ul>
+        <li>Data is stored in the app's private sandbox on your device.</li>
+        <li>All network requests use HTTPS (encrypted in transit).</li>
+        <li>No method of storage or transfer is 100% secure, so we cannot guarantee absolute security.</li>
+      </ul>
     </article>
 
     <!-- Section 10 -->
     <article class="section-card">
-      <h2><span class="num">10</span> Contact & Inquiries</h2>
+      <h2><span class="num">10</span> Children's Privacy</h2>
       <p>
-        If you have questions, feedback, or inquiries regarding this Privacy Policy or your data protection rights, please reach out to:
+        Dateora is for general audiences and is not directed at children under 13. We do not knowingly collect personal information from children. If you believe a child has provided information, contact us and we will help.
       </p>
+    </article>
+
+    <!-- Section 11 -->
+    <article class="section-card">
+      <h2><span class="num">11</span> Changes to This Policy</h2>
+      <p>
+        We may update this policy. The new version will be posted at this URL with a new Effective Date. Please review it from time to time.
+      </p>
+    </article>
+
+    <!-- Section 12 -->
+    <article class="section-card">
+      <h2><span class="num">12</span> Contact</h2>
       <div class="contact-card">
         <p><strong>Developer:</strong> Tushal Jadhav</p>
-        <p><strong>Application:</strong> Dateora — Smart Expiry Tracker</p>
-        <p><strong>Privacy & Support Email:</strong> <a href="mailto:tushaljadhav123@gmail.com">tushaljadhav123@gmail.com</a></p>
-        <p><strong>Official Web Portal:</strong> <a href="https://dateora.onrender.com" target="_blank">https://dateora.onrender.com</a></p>
+        <p><strong>Email:</strong> <a href="mailto:tushaljadhav123@gmail.com">tushaljadhav123@gmail.com</a></p>
+        <p><strong>Website:</strong> <a href="https://dateora.onrender.com" target="_blank">https://dateora.onrender.com</a></p>
       </div>
     </article>
 

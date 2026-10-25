@@ -130,9 +130,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
           // ─── Section 2: Permissions ───
           _buildLegalCard(
             sectionNumber: '2',
-            title: 'Android Permissions & Justifications',
+            title: 'Android Permissions',
             content:
-                '• Camera (CAMERA): Requested only when scanning barcodes on packaging or capturing an expiration date stamp.\n\n• Photos / Storage: Used solely if you choose to attach an existing product photo from your device storage.\n\n• Notifications (POST_NOTIFICATIONS): Scheduled locally on the operating system clock to warn you before items expire. No remote push server tracking is involved.',
+                '• Camera: Used only when you open the barcode scanner or take a product photo. Never used in the background.\n\n• Notifications: Used to show expiry reminders. Reminders are scheduled locally on your phone.\n\n• Photos: When you attach an existing photo, Dateora uses Android\'s system photo picker without scanning your gallery.\n\n• Internet: Needed for AI scan, barcode lookup, and crash/usage reports.\n\n• Run at startup & Vibration: Used to restore scheduled reminders upon reboot and vibrate for alerts.',
             isDark: isDark,
           ),
 
@@ -176,7 +176,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             sectionNumber: '6',
             title: 'Data Ownership & Deletion Rights',
             content:
-                'You have absolute control over your data:\n• Delete individual items anytime with a swipe.\n• Wipe all data permanently via Settings &rarr; Clear All Data.\n• Uninstalling the app permanently purges all database tables and images from disk.',
+                'You have absolute control over your data:\n• Delete individual items anytime with a swipe.\n• Wipe all data: Settings &rarr; Danger Zone &rarr; Delete All Data permanently removes all items, reminders, saved photos, and settings from this device.\n• Uninstalling the app removes its local data from your device.',
             isDark: isDark,
           ),
 

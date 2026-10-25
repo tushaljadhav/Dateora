@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/item.dart';
@@ -64,48 +62,17 @@ class NotificationService {
   }
 
   Future<bool> canScheduleExactAlarms() async {
-    if (!Platform.isAndroid) return true;
-    try {
-      return await Permission.scheduleExactAlarm.isGranted;
-    } catch (_) {
-      return true;
-    }
+    return false;
   }
 
   Future<bool> requestExactAlarmsPermission() async {
-    if (!Platform.isAndroid) return true;
-    final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    if (android != null) {
-      try {
-        final res = await android.requestExactAlarmsPermission();
-        return res ?? false;
-      } catch (_) {
-        try {
-          final status = await Permission.scheduleExactAlarm.request();
-          return status.isGranted;
-        } catch (_) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return false;
   }
 
   Future<bool> requestPermissions() async {
     final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
-
-      // On Android 14+ (API 34+), check and request exact alarms permission if not granted
-      if (Platform.isAndroid) {
-        try {
-          final exactGranted = await Permission.scheduleExactAlarm.isGranted;
-          if (!exactGranted) {
-            await requestExactAlarmsPermission();
-          }
-        } catch (_) {}
-      }
-
       return granted ?? false;
     }
     return true;
@@ -225,15 +192,6 @@ class NotificationService {
 
         const notifDetails = NotificationDetails(android: androidDetails);
 
-        bool canExact = true;
-        if (Platform.isAndroid) {
-          try {
-            canExact = await canScheduleExactAlarms();
-          } catch (_) {
-            canExact = false;
-          }
-        }
-
         try {
           await _notifications.zonedSchedule(
             notifId,
@@ -242,10 +200,10 @@ class NotificationService {
             tzFiresAt,
             notifDetails,
             uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: canExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexact,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           );
         } catch (_) {
-          // Fallback to inexact scheduling if exact alarms are not permitted
+          // Fallback to inexact scheduling
           try {
             await _notifications.zonedSchedule(
               notifId,
@@ -330,15 +288,6 @@ class NotificationService {
 
     const notifDetails = NotificationDetails(android: androidDetails);
 
-    bool canExact = true;
-    if (Platform.isAndroid) {
-      try {
-        canExact = await canScheduleExactAlarms();
-      } catch (_) {
-        canExact = false;
-      }
-    }
-
     try {
       await _notifications.zonedSchedule(
         weeklySummaryNotifId,
@@ -347,7 +296,7 @@ class NotificationService {
         tzFiresAt,
         notifDetails,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        androidScheduleMode: canExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexact,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     } catch (_) {
       try {
@@ -384,15 +333,6 @@ class NotificationService {
 
     const notifDetails = NotificationDetails(android: androidDetails);
 
-    bool canExact = true;
-    if (Platform.isAndroid) {
-      try {
-        canExact = await canScheduleExactAlarms();
-      } catch (_) {
-        canExact = false;
-      }
-    }
-
     try {
       await _notifications.zonedSchedule(
         999999,
@@ -401,7 +341,7 @@ class NotificationService {
         scheduledDate,
         notifDetails,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        androidScheduleMode: canExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexact,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     } catch (_) {
       try {

@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -211,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete All Data?'),
         content: const Text(
-          'This will permanently delete all your items, history and notifications from this device. Are you sure?',
+          'This will permanently delete all items, reminders, photos and settings from this device.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -222,13 +225,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              Navigator.pop(ctx);
-              await DatabaseHelper.instance.clearAllData();
-              if (!mounted) return;
               final itemsProvider = Provider.of<ItemsProvider>(context, listen: false);
+              final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+              Navigator.pop(ctx);
+
+              // 1. Clear all SQLite tables (items, notification_records, app_settings)
+              await DatabaseHelper.instance.clearAllData();
+
+              // 2. Cancel ALL scheduled local notifications
+              await NotificationService.instance.cancelAll();
+
+              // 3. Delete every file inside dateora_photos/ folder
+              try {
+                final appDir = await getApplicationDocumentsDirectory();
+                final photosDir = Directory(p.join(appDir.path, 'dateora_photos'));
+                if (await photosDir.exists()) {
+                  await photosDir.delete(recursive: true);
+                }
+              } catch (_) {}
+
+              // Delete leftover temp upload_*.jpg files
+              try {
+                final tempDir = await getTemporaryDirectory();
+                if (await tempDir.exists()) {
+                  final files = tempDir.listSync();
+                  for (final file in files) {
+                    if (file is File && p.basename(file.path).startsWith('upload_')) {
+                      try {
+                        await file.delete();
+                      } catch (_) {}
+                    }
+                  }
+                }
+              } catch (_) {}
+
+              // 4. Clear SharedPreferences and flutter_secure_storage (resets to defaults)
+              await settingsProvider.resetToDefaults();
+
+              // 5. Reload empty items state into UI
               await itemsProvider.loadItems();
+
+              if (!mounted) return;
               messenger.showSnackBar(
-                const SnackBar(content: Text('All local data cleared.')),
+                const SnackBar(content: Text('All local data, photos and settings cleared.')),
               );
             },
             child: const Text('Delete All'),

@@ -265,4 +265,18 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString('ai_transport_mode', _aiTransportMode);
     if (proxyUrl != null) await prefs.setString('ai_proxy_base_url', _proxyBaseUrl);
   }
+
+  /// Clears SharedPreferences and secure storage, resetting settings to defaults while keeping app stable
+  Future<void> resetToDefaults() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    await prefs.setBool('onboarding_completed', true);
+
+    try {
+      await _secureStorage.deleteAll();
+    } catch (_) {}
+    _geminiApiKey = '';
+
+    await loadSettings();
+  }
 }
