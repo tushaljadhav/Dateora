@@ -979,6 +979,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
+          // ─── 8. Demo Mode (Screenshots) ───
+          _buildSectionHeader(Icons.auto_fix_high_rounded, 'Demo Mode (Screenshots)'),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+              leading: _buildIconBadge(Icons.auto_awesome_rounded, isDark),
+              title: const Text('Load Demo Items', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Adds realistic groceries, dairy & medicine to take screenshots'),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              onTap: () async {
+                final itemsProvider = Provider.of<ItemsProvider>(context, listen: false);
+                await itemsProvider.loadSampleData();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppColors.primaryStrong,
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text('Demo data loaded! Check Home & Items screen.'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+
           const SizedBox(height: AppSpacing.lg),
 
           // ─── 9. Danger Zone ───

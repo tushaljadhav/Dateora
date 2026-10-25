@@ -192,4 +192,88 @@ class ItemsProvider with ChangeNotifier {
     await _repo.restoreItem(item, dailyNotificationTime: dailyNotificationTime);
     await loadItems();
   }
+
+  /// Populates realistic grocery, dairy, and medicine items for Play Store screenshots
+  Future<void> loadSampleData() async {
+    final now = DateTime.now();
+    final samples = [
+      {
+        'name': 'Organic Whole Milk',
+        'category': 'dairy',
+        'expiryDate': now.add(const Duration(days: 2)).toIso8601String(),
+        'location': 'Fridge Door',
+        'quantity': 1.0,
+        'unit': 'L',
+        'price': 65.0,
+      },
+      {
+        'name': 'Greek Yogurt Tub',
+        'category': 'dairy',
+        'expiryDate': now.add(const Duration(days: 4)).toIso8601String(),
+        'location': 'Fridge Top Shelf',
+        'quantity': 400.0,
+        'unit': 'g',
+        'price': 120.0,
+      },
+      {
+        'name': 'Multi-Grain Bread',
+        'category': 'groceries',
+        'expiryDate': now.add(const Duration(days: 3)).toIso8601String(),
+        'location': 'Kitchen Counter',
+        'quantity': 1.0,
+        'unit': 'pack',
+        'price': 50.0,
+      },
+      {
+        'name': 'Fresh Strawberries',
+        'category': 'groceries',
+        'expiryDate': now.add(const Duration(days: 6)).toIso8601String(),
+        'location': 'Crisper Drawer',
+        'quantity': 250.0,
+        'unit': 'g',
+        'price': 140.0,
+      },
+      {
+        'name': 'Farm Fresh Eggs (12-pack)',
+        'category': 'dairy',
+        'expiryDate': now.add(const Duration(days: 14)).toIso8601String(),
+        'location': 'Fridge Middle Shelf',
+        'quantity': 12.0,
+        'unit': 'pcs',
+        'price': 110.0,
+      },
+      {
+        'name': 'Paracetamol 500mg',
+        'category': 'medicine',
+        'expiryDate': now.add(const Duration(days: 180)).toIso8601String(),
+        'location': 'First Aid Box',
+        'quantity': 10.0,
+        'unit': 'tablets',
+        'price': 35.0,
+      },
+      {
+        'name': 'Organic Green Tea',
+        'category': 'beverages',
+        'expiryDate': now.add(const Duration(days: 90)).toIso8601String(),
+        'location': 'Pantry Cabinet',
+        'quantity': 25.0,
+        'unit': 'bags',
+        'price': 220.0,
+      },
+    ];
+
+    for (final s in samples) {
+      await addItem(
+        name: s['name'] as String,
+        category: s['category'] as String,
+        expiryDate: s['expiryDate'] as String,
+        location: s['location'] as String?,
+        quantity: s['quantity'] as double?,
+        unit: s['unit'] as String?,
+        price: s['price'] as double?,
+        reminderOffsets: [3, 1],
+      );
+    }
+    await loadItems();
+  }
 }
